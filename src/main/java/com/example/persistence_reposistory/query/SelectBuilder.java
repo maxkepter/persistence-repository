@@ -1,5 +1,6 @@
 package com.example.persistence_reposistory.query;
 
+import java.util.ArrayList;
 import java.util.List;
 
 public class SelectBuilder extends AbstractQueryBuilder {
@@ -11,6 +12,10 @@ public class SelectBuilder extends AbstractQueryBuilder {
     private Integer limit;
     private Integer offset;
 
+    public SelectBuilder() {
+        this.orderByColumns = new ArrayList<>();
+    }
+
     public static SelectBuilder builder() {
         return new SelectBuilder();
     }
@@ -21,7 +26,7 @@ public class SelectBuilder extends AbstractQueryBuilder {
     }
 
     public SelectBuilder columns(String... columns) {
-        this.columns.addAll(List.of(columns));
+        this.columns = List.of(columns);
         return this;
     }
 
