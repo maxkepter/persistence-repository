@@ -1,24 +1,21 @@
-package com.example.persistence_reposistory.query;
+package com.example.persistence_repository.query.crud;
 
 import java.util.ArrayList;
 import java.util.List;
 
+import com.example.persistence_repository.query.AbstractQueryBuilder;
+
 public class InsertBuilder extends AbstractQueryBuilder {
-    private String tableName;
     private List<String> columns;
     private List<Object> values;
 
-    public InsertBuilder() {
+    public InsertBuilder(String tableName) {
+        super(tableName);
         this.values = new ArrayList<>();
     }
 
-    public static InsertBuilder builder() {
-        return new InsertBuilder();
-    }
-
-    public InsertBuilder tableName(String tableName) {
-        this.tableName = tableName;
-        return this;
+    public static InsertBuilder builder(String tableName) {
+        return new InsertBuilder(tableName);
     }
 
     public InsertBuilder columns(List<String> columns) {

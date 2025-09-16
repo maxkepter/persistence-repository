@@ -1,11 +1,11 @@
-package com.example.persistence_reposistory;
+package com.example.persistence_repository;
 
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.SQLException;
 
 public class DBcontext {
-    private static Connection connection;
+    private Connection connection;
 
     public DBcontext() {
         try {
@@ -16,7 +16,7 @@ public class DBcontext {
             String password = "123456";
 
             Connection conn = DriverManager.getConnection(url, user, password);
-            System.out.println(conn);
+            this.connection = conn;
         } catch (ClassNotFoundException e) {
             // TODO Auto-generated catch block
             e.printStackTrace();
@@ -27,11 +27,11 @@ public class DBcontext {
 
     }
 
-    public static Connection getConnection() {
-        return null;
+    public Connection getConnection() {
+        return connection;
     }
 
-    public static void closeConnection(Connection conn) {
+    public void closeConnection(Connection conn) {
         if (conn != null) {
             try {
                 conn.close();

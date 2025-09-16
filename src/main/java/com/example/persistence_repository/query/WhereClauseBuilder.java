@@ -1,8 +1,8 @@
-package com.example.persistence_reposistory.query;
+package com.example.persistence_repository.query;
 
 import java.util.List;
 
-public class WhereClauseBuilder extends AbstractQueryBuilder {
+public class WhereClauseBuilder implements PrepareQueryBuilder {
 
     @Override
     public List<Object> getParameters() {

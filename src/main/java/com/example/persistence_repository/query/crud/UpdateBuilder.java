@@ -1,25 +1,23 @@
-package com.example.persistence_reposistory.query;
+package com.example.persistence_repository.query.crud;
 
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+
+import com.example.persistence_repository.query.AbstractQueryBuilder;
 
 public class UpdateBuilder extends AbstractQueryBuilder {
     private String tableName;
     private Map<String, Object> setClauses;
     private String whereClause;
 
-    public UpdateBuilder() {
+    public UpdateBuilder(String tableName) {
+        super(tableName);
         setClauses = new HashMap<>();
     }
 
-    public static UpdateBuilder builder() {
-        return new UpdateBuilder();
-    }
-
-    public UpdateBuilder tableName(String tableName) {
-        this.tableName = tableName;
-        return this;
+    public static UpdateBuilder builder(String tableName) {
+        return new UpdateBuilder(tableName);
     }
 
     public UpdateBuilder set(String column, Object value) {

@@ -1,10 +1,13 @@
-package com.example.persistence_reposistory.query;
+package com.example.persistence_repository.query.crud;
 
 import java.util.ArrayList;
 import java.util.List;
 
+import com.example.persistence_repository.query.AbstractQueryBuilder;
+import com.example.persistence_repository.query.Order;
+
 public class SelectBuilder extends AbstractQueryBuilder {
-    private String tableName;
+
     private List<String> columns;
     private boolean isDistinct;
     private String whereClause;
@@ -12,17 +15,13 @@ public class SelectBuilder extends AbstractQueryBuilder {
     private Integer limit;
     private Integer offset;
 
-    public SelectBuilder() {
+    public SelectBuilder(String tableName) {
+        super(tableName);
         this.orderByColumns = new ArrayList<>();
     }
 
-    public static SelectBuilder builder() {
-        return new SelectBuilder();
-    }
-
-    public SelectBuilder tableName(String tableName) {
-        this.tableName = tableName;
-        return this;
+    public static SelectBuilder builder(String tableName) {
+        return new SelectBuilder(tableName);
     }
 
     public SelectBuilder columns(String... columns) {

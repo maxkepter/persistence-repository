@@ -1,4 +1,4 @@
-package com.example.persistence_reposistory.query;
+package com.example.persistence_repository.query;
 
 public class Order {
     private String column;

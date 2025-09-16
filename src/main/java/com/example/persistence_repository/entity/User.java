@@ -1,6 +1,9 @@
-package com.example.persistence_reposistory.entity;
+package com.example.persistence_repository.entity;
+
+import com.example.persistence_repository.annotation.Key;
 
 public class User {
+    @Key
     private int id;
     private String name;
     private String email;
@@ -27,6 +30,11 @@ public class User {
 
     public void setEmail(String email) {
         this.email = email;
+    }
+
+    @Override
+    public String toString() {
+        return "User [id=" + id + ", name=" + name + ", email=" + email + "]";
     }
 
 }

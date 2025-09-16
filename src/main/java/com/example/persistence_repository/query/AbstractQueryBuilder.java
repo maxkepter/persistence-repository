@@ -1,4 +1,4 @@
-package com.example.persistence_reposistory.query;
+package com.example.persistence_repository.query;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -6,7 +6,10 @@ import java.util.List;
 public abstract class AbstractQueryBuilder implements PrepareQueryBuilder {
     private List<Object> parameters;
 
-    public AbstractQueryBuilder() {
+    protected String tableName;
+
+    public AbstractQueryBuilder(String tableName) {
+        this.tableName = tableName;
         this.parameters = new ArrayList<>();
     }
 
