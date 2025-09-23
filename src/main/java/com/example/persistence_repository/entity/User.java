@@ -1,6 +1,6 @@
 package com.example.persistence_repository.entity;
 
-import com.example.persistence_repository.annotation.Key;
+import com.example.persistence_repository.persistence.annotation.Key;
 
 public class User {
     @Key
@@ -10,6 +10,15 @@ public class User {
 
     public int getId() {
         return id;
+    }
+
+    public User(int id, String name, String email) {
+        this.id = id;
+        this.name = name;
+        this.email = email;
+    }
+
+    public User() {
     }
 
     public void setId(int id) {

@@ -1,13 +1,13 @@
-package com.example.persistence_repository.query.crud;
+package com.example.persistence_repository.persistence.query.crud;
 
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import com.example.persistence_repository.query.AbstractQueryBuilder;
+import com.example.persistence_repository.persistence.config.BuildQueryConfig;
+import com.example.persistence_repository.persistence.query.AbstractQueryBuilder;
 
 public class UpdateBuilder extends AbstractQueryBuilder {
-    private String tableName;
     private Map<String, Object> setClauses;
     private String whereClause;
 
@@ -23,6 +23,7 @@ public class UpdateBuilder extends AbstractQueryBuilder {
     public UpdateBuilder set(String column, Object value) {
         this.getParameters().add(value);
         this.setClauses.put(column, value);
+        System.out.println(column + " = " + value);
         return this;
     }
 
@@ -42,11 +43,15 @@ public class UpdateBuilder extends AbstractQueryBuilder {
         }
 
         StringBuilder query = new StringBuilder("UPDATE ").append(tableName).append(" SET ");
-        query.append(setClauses.entrySet().stream().map(e -> e.getKey() + " = " + e.getValue())
-                .reduce((a, b) -> b + "," + a).orElse(""));
+        query.append(setClauses.entrySet().stream().map(e -> e.getKey() + " = " + " ? ")
+                .reduce((a, b) -> a + "," + b).orElse(""));
 
         if (whereClause != null) {
             query.append(whereClause);
+        }
+
+        if (BuildQueryConfig.isPrintSql) {
+            System.out.println("Generated Query: \n" + query.toString());
         }
 
         return query.toString();

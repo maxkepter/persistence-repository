@@ -5,28 +5,21 @@ import java.util.List;
 
 import com.example.persistence_repository.dao.UserDao;
 import com.example.persistence_repository.entity.User;
-import com.example.persistence_repository.query.AbstractQueryBuilder;
-import com.example.persistence_repository.query.crud.DeleteBuilder;
-import com.example.persistence_repository.query.crud.InsertBuilder;
-import com.example.persistence_repository.query.crud.SelectBuilder;
-import com.example.persistence_repository.query.crud.UpdateBuilder;
+import com.example.persistence_repository.persistence.query.AbstractQueryBuilder;
+import com.example.persistence_repository.persistence.query.WhereClauseBuilder;
+import com.example.persistence_repository.persistence.query.clause.ClauseTree;
+import com.example.persistence_repository.persistence.query.crud.DeleteBuilder;
+import com.example.persistence_repository.persistence.query.crud.InsertBuilder;
+import com.example.persistence_repository.persistence.query.crud.SelectBuilder;
+import com.example.persistence_repository.persistence.query.crud.UpdateBuilder;
 
 public class Main {
     public static void main(String[] args) {
         DBcontext db = new DBcontext();
-        List<String> columns = Arrays.asList(User.class.getDeclaredFields()).stream().map((field) -> {
-            field.setAccessible(true);
-            return field.getName();
-        }).toList();
-        String tableName = User.class.getSimpleName();
-
-        AbstractQueryBuilder builder = delete(columns, tableName);
-        System.out.println("Query: " + builder.build());
-        System.out.println("Parameters: " + builder.getParameters());
-        // System.out.println(db.getConnection());
-        // UserDao userDao = new UserDao(db.getConnection());
-        // userDao.deleteById(10);
-        // System.out.println(userDao.findAll());
+        UserDao userDao = new UserDao(db.getConnection());
+        User user = new User(1, "name", "email");
+        userDao.merge(user);
+        // userDao.findAll().forEach(System.out::println);
 
     }
 
@@ -53,6 +46,12 @@ public class Main {
     public static AbstractQueryBuilder delete(List<String> columns, String tableName) {
         DeleteBuilder builder = DeleteBuilder.builder(tableName);
         return builder;
+    }
+
+    public static void where() {
+        ClauseTree clauseTree = ClauseTree.and(ClauseTree.create("id = ?", 1), ClauseTree.create("name = ?", "test"));
+        System.out.println(clauseTree.build());
+        System.out.println(clauseTree.getParameters());
     }
 
 }

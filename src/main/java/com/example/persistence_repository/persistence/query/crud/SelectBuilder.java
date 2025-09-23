@@ -1,10 +1,11 @@
-package com.example.persistence_repository.query.crud;
+package com.example.persistence_repository.persistence.query.crud;
 
 import java.util.ArrayList;
 import java.util.List;
 
-import com.example.persistence_repository.query.AbstractQueryBuilder;
-import com.example.persistence_repository.query.Order;
+import com.example.persistence_repository.persistence.config.BuildQueryConfig;
+import com.example.persistence_repository.persistence.query.AbstractQueryBuilder;
+import com.example.persistence_repository.persistence.query.Order;
 
 public class SelectBuilder extends AbstractQueryBuilder {
 
@@ -94,6 +95,11 @@ public class SelectBuilder extends AbstractQueryBuilder {
         if (offset != null) {
             query.append(" OFFSET ").append(offset);
         }
+        if (BuildQueryConfig.isPrintSql) {
+            System.out.println("Generated Query: \n" + query.toString());
+
+        }
+
         return query.toString();
     }
 

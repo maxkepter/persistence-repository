@@ -1,4 +1,4 @@
-package com.example.persistence_repository.repository;
+package com.example.persistence_repository.persistence.repository;
 
 import java.lang.reflect.Field;
 import java.sql.Connection;
@@ -10,11 +10,12 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 
-import com.example.persistence_repository.annotation.Key;
-import com.example.persistence_repository.exception.DuplicateKeyException;
-import com.example.persistence_repository.query.crud.DeleteBuilder;
-import com.example.persistence_repository.query.crud.InsertBuilder;
-import com.example.persistence_repository.query.crud.SelectBuilder;
+import com.example.persistence_repository.persistence.annotation.Key;
+import com.example.persistence_repository.persistence.exception.DuplicateKeyException;
+import com.example.persistence_repository.persistence.query.crud.DeleteBuilder;
+import com.example.persistence_repository.persistence.query.crud.InsertBuilder;
+import com.example.persistence_repository.persistence.query.crud.SelectBuilder;
+import com.example.persistence_repository.persistence.query.crud.UpdateBuilder;
 
 public abstract class AbstractReposistory<E, K> implements CrudReposistory<E, K> {
 
@@ -80,7 +81,7 @@ public abstract class AbstractReposistory<E, K> implements CrudReposistory<E, K>
                 ResultSet rs = preparedSt.executeQuery()) {
             result = mapListResultSet(rs, cls);
         } catch (Exception e) {
-            // TODO: handle exception
+            e.printStackTrace();
         }
         return result;
     }
@@ -142,9 +143,34 @@ public abstract class AbstractReposistory<E, K> implements CrudReposistory<E, K>
     }
 
     @Override
-    public E update(E entity) {
-        // TODO Auto-generated method stub
-        return null;
+    public E merge(E entity) {
+        try {
+            UpdateBuilder builder = UpdateBuilder.builder(tableName);
+            Object keyValue = null;
+            for (Field field : fields) {
+                field.setAccessible(true);
+                Object value = field.get(entity);
+                if (field.getName().equals(keyField)) {
+                    keyValue = value;
+                    continue;
+                }
+                builder.set(field.getName(), value);
+            }
+            builder.where(" WHERE " + keyField + " = ?", keyValue);
+
+            try (PreparedStatement ps = connection.prepareStatement(builder.build())) {
+                setPreparedStatementValue(ps, builder.getParameters());
+                int affected = ps.executeUpdate();
+                if (affected == 0) {
+                    // No row updated, treat as insert (merge semantics)
+                    return save(entity);
+                }
+            }
+            return entity;
+        } catch (Exception e) {
+            e.printStackTrace();
+            return null;
+        }
     }
 
     public E mapResultSet(ResultSet rs, Class<E> cls) throws Exception {

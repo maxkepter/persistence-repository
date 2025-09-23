@@ -1,4 +1,4 @@
-package com.example.persistence_repository.annotation;
+package com.example.persistence_repository.persistence.annotation;
 
 import java.lang.annotation.ElementType;
 import java.lang.annotation.Retention;

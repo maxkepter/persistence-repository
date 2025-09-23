@@ -1,4 +1,4 @@
-package com.example.persistence_repository.query;
+package com.example.persistence_repository.persistence.query;
 
 import java.util.ArrayList;
 import java.util.List;

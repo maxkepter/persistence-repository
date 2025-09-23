@@ -1,8 +1,9 @@
-package com.example.persistence_repository.query.crud;
+package com.example.persistence_repository.persistence.query.crud;
 
 import java.util.List;
 
-import com.example.persistence_repository.query.AbstractQueryBuilder;
+import com.example.persistence_repository.persistence.config.BuildQueryConfig;
+import com.example.persistence_repository.persistence.query.AbstractQueryBuilder;
 
 public class DeleteBuilder extends AbstractQueryBuilder {
 
@@ -32,6 +33,11 @@ public class DeleteBuilder extends AbstractQueryBuilder {
         if (whereClause != null) {
             query.append(" WHERE " + whereClause);
         }
+
+        if (BuildQueryConfig.isPrintSql) {
+            System.out.println("Generated Query: \n" + query.toString());
+        }
+
         return query.toString();
 
     }
