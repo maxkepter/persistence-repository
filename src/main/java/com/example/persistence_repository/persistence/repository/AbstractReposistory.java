@@ -11,6 +11,7 @@ import java.util.Arrays;
 import java.util.List;
 
 import com.example.persistence_repository.persistence.annotation.Key;
+import com.example.persistence_repository.persistence.config.RepositoryConfig;
 import com.example.persistence_repository.persistence.exception.DuplicateKeyException;
 import com.example.persistence_repository.persistence.query.crud.DeleteBuilder;
 import com.example.persistence_repository.persistence.query.crud.InsertBuilder;
@@ -25,8 +26,8 @@ public abstract class AbstractReposistory<E, K> implements CrudReposistory<E, K>
     private String keyField;
     private String tableName;
 
-    public AbstractReposistory(Connection connection, Class<E> cls) {
-        this.connection = connection;
+    public AbstractReposistory(Class<E> cls) {
+        this.connection = RepositoryConfig.getConnection();
         this.cls = cls;
         this.fields = Arrays.asList(cls.getDeclaredFields());
         this.tableName = cls.getSimpleName();

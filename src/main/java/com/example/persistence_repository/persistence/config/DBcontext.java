@@ -1,4 +1,4 @@
-package com.example.persistence_repository;
+package com.example.persistence_repository.persistence.config;
 
 import java.sql.Connection;
 import java.sql.DriverManager;

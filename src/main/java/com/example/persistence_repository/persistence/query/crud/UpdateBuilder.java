@@ -1,19 +1,16 @@
 package com.example.persistence_repository.persistence.query.crud;
 
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
-
 import com.example.persistence_repository.persistence.config.BuildQueryConfig;
 import com.example.persistence_repository.persistence.query.AbstractQueryBuilder;
 
 public class UpdateBuilder extends AbstractQueryBuilder {
-    private Map<String, Object> setClauses;
+    private List<String> setClauses;
     private String whereClause;
 
     public UpdateBuilder(String tableName) {
         super(tableName);
-        setClauses = new HashMap<>();
+        setClauses = new java.util.ArrayList<>();
     }
 
     public static UpdateBuilder builder(String tableName) {
@@ -22,8 +19,7 @@ public class UpdateBuilder extends AbstractQueryBuilder {
 
     public UpdateBuilder set(String column, Object value) {
         this.getParameters().add(value);
-        this.setClauses.put(column, value);
-        System.out.println(column + " = " + value);
+        this.setClauses.add(column);
         return this;
     }
 
@@ -43,7 +39,7 @@ public class UpdateBuilder extends AbstractQueryBuilder {
         }
 
         StringBuilder query = new StringBuilder("UPDATE ").append(tableName).append(" SET ");
-        query.append(setClauses.entrySet().stream().map(e -> e.getKey() + " = " + " ? ")
+        query.append(setClauses.stream().map(col -> col + " = ? ")
                 .reduce((a, b) -> a + "," + b).orElse(""));
 
         if (whereClause != null) {

@@ -5,8 +5,8 @@ import java.util.List;
 
 import com.example.persistence_repository.dao.UserDao;
 import com.example.persistence_repository.entity.User;
+import com.example.persistence_repository.persistence.config.DBcontext;
 import com.example.persistence_repository.persistence.query.AbstractQueryBuilder;
-import com.example.persistence_repository.persistence.query.WhereClauseBuilder;
 import com.example.persistence_repository.persistence.query.clause.ClauseTree;
 import com.example.persistence_repository.persistence.query.crud.DeleteBuilder;
 import com.example.persistence_repository.persistence.query.crud.InsertBuilder;
@@ -15,8 +15,7 @@ import com.example.persistence_repository.persistence.query.crud.UpdateBuilder;
 
 public class Main {
     public static void main(String[] args) {
-        DBcontext db = new DBcontext();
-        UserDao userDao = new UserDao(db.getConnection());
+        UserDao userDao = new UserDao();
         User user = new User(1, "name", "email");
         userDao.merge(user);
         // userDao.findAll().forEach(System.out::println);
