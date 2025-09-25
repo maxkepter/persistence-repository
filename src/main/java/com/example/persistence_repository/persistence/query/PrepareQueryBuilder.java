@@ -6,4 +6,8 @@ public interface PrepareQueryBuilder {
     List<Object> getParameters();
 
     String build();
+
+    String build(boolean isPrintSql);
+
+    String createQuery();
 }

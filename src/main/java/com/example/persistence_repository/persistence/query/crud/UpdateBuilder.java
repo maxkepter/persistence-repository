@@ -1,5 +1,6 @@
 package com.example.persistence_repository.persistence.query.crud;
 
+import java.util.ArrayList;
 import java.util.List;
 import com.example.persistence_repository.persistence.config.BuildQueryConfig;
 import com.example.persistence_repository.persistence.query.AbstractQueryBuilder;
@@ -10,7 +11,7 @@ public class UpdateBuilder extends AbstractQueryBuilder {
 
     public UpdateBuilder(String tableName) {
         super(tableName);
-        setClauses = new java.util.ArrayList<>();
+        setClauses = new ArrayList<>();
     }
 
     public static UpdateBuilder builder(String tableName) {
@@ -30,7 +31,7 @@ public class UpdateBuilder extends AbstractQueryBuilder {
     }
 
     @Override
-    public String build() {
+    public String createQuery() {
         if (tableName == null || tableName.isEmpty()) {
             throw new IllegalStateException("Table name is required for UPDATE statement.");
         }
@@ -39,18 +40,32 @@ public class UpdateBuilder extends AbstractQueryBuilder {
         }
 
         StringBuilder query = new StringBuilder("UPDATE ").append(tableName).append(" SET ");
-        query.append(setClauses.stream().map(col -> col + " = ? ")
+        query.append(setClauses.stream().map(col -> col + " = ?")
                 .reduce((a, b) -> a + "," + b).orElse(""));
 
-        if (whereClause != null) {
-            query.append(whereClause);
-        }
-
-        if (BuildQueryConfig.isPrintSql) {
-            System.out.println("Generated Query: \n" + query.toString());
+        if (whereClause != null && !whereClause.isEmpty()) {
+            query.append(" WHERE ").append(whereClause);
         }
 
         return query.toString();
+    }
+
+    @Override
+    public String build(boolean isPrintSql) {
+        String query = createQuery();
+        if (isPrintSql) {
+            System.out.println("Generated Query: " + query);
+        }
+        return query;
+    }
+
+    @Override
+    public String build() {
+        String query = createQuery();
+        if (BuildQueryConfig.isPrintSql) {
+            System.out.println("Generated Query: " + query);
+        }
+        return query;
     }
 
 }

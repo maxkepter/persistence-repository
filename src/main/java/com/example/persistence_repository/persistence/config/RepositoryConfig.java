@@ -3,7 +3,10 @@ package com.example.persistence_repository.persistence.config;
 import java.sql.Connection;
 
 public class RepositoryConfig {
-    private static Connection connection;
+    public static Connection connection;
+    public final static String DB_URL = "jdbc:mysql://localhost:3306/mydb";
+    public final static String USER = "root";
+    public final static String PASSWORD = "123456";
 
     public static Connection getConnection() {
         if (connection == null) {

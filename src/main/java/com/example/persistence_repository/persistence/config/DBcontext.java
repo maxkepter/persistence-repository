@@ -10,10 +10,9 @@ public class DBcontext {
     public DBcontext() {
         try {
             Class.forName("com.mysql.cj.jdbc.Driver");
-            String url = "jdbc:mysql://localhost:3306/mydb";
-
-            String user = "root";
-            String password = "123456";
+            String url = RepositoryConfig.DB_URL;
+            String user = RepositoryConfig.USER;
+            String password = RepositoryConfig.PASSWORD;
 
             Connection conn = DriverManager.getConnection(url, user, password);
             this.connection = conn;

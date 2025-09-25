@@ -5,7 +5,7 @@ import java.util.List;
 
 import com.example.persistence_repository.persistence.config.BuildQueryConfig;
 import com.example.persistence_repository.persistence.query.AbstractQueryBuilder;
-import com.example.persistence_repository.persistence.query.Order;
+import com.example.persistence_repository.persistence.query.common.Order;
 
 public class SelectBuilder extends AbstractQueryBuilder {
 
@@ -62,7 +62,7 @@ public class SelectBuilder extends AbstractQueryBuilder {
     }
 
     @Override
-    public String build() {
+    public String createQuery() {
         if (tableName == null || tableName.isEmpty()) {
             throw new IllegalStateException("Table name is required for SELECT query");
         }
@@ -95,12 +95,25 @@ public class SelectBuilder extends AbstractQueryBuilder {
         if (offset != null) {
             query.append(" OFFSET ").append(offset);
         }
-        if (BuildQueryConfig.isPrintSql) {
-            System.out.println("Generated Query: \n" + query.toString());
-
-        }
-
         return query.toString();
+    }
+
+    @Override
+    public String build(boolean isPrintSql) {
+        String query = createQuery();
+        if (isPrintSql) {
+            System.out.println("Generated Query: " + query);
+        }
+        return query;
+    }
+
+    @Override
+    public String build() {
+        String query = createQuery();
+        if (BuildQueryConfig.isPrintSql) {
+            System.out.println("Generated Query: " + query);
+        }
+        return query;
     }
 
 }

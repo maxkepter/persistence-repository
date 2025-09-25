@@ -10,9 +10,12 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 
+import com.example.persistence_repository.entity.User;
 import com.example.persistence_repository.persistence.annotation.Key;
 import com.example.persistence_repository.persistence.config.RepositoryConfig;
 import com.example.persistence_repository.persistence.exception.DuplicateKeyException;
+import com.example.persistence_repository.persistence.query.common.Page;
+import com.example.persistence_repository.persistence.query.common.PageRequest;
 import com.example.persistence_repository.persistence.query.crud.DeleteBuilder;
 import com.example.persistence_repository.persistence.query.crud.InsertBuilder;
 import com.example.persistence_repository.persistence.query.crud.SelectBuilder;
@@ -23,7 +26,7 @@ public abstract class AbstractReposistory<E, K> implements CrudReposistory<E, K>
     private Connection connection;
     private Class<E> cls;
     private List<Field> fields;
-    private String keyField;
+    private Field keyField;
     private String tableName;
 
     public AbstractReposistory(Class<E> cls) {
@@ -74,6 +77,40 @@ public abstract class AbstractReposistory<E, K> implements CrudReposistory<E, K>
     }
 
     @Override
+    public boolean isExist(K key) {
+        SelectBuilder builder = SelectBuilder.builder(tableName)
+                .columns(List.of("1"))
+                .where(keyField.getName() + " = ?", key)
+                .limit(1);
+        boolean exists = false;
+        try (PreparedStatement preparedSt = connection.prepareStatement(builder.build());
+                ResultSet rs = preparedSt.executeQuery()) {
+            if (rs.next()) {
+                exists = true;
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        return exists;
+    }
+
+    @Override
+    public int count() {
+        SelectBuilder builder = SelectBuilder.builder(tableName)
+                .columns(List.of("COUNT(*) AS total"));
+        int count = 0;
+        try (PreparedStatement preparedSt = connection.prepareStatement(builder.build());
+                ResultSet rs = preparedSt.executeQuery()) {
+            if (rs.next()) {
+                count = rs.getInt("total");
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        return count;
+    }
+
+    @Override
     public Iterable<E> findAll() {
         SelectBuilder builder = SelectBuilder.builder(tableName)
                 .columns(fields.stream().map(f -> f.getName()).toList());
@@ -87,9 +124,42 @@ public abstract class AbstractReposistory<E, K> implements CrudReposistory<E, K>
         return result;
     }
 
+    public Page<E> findAll(PageRequest request) {
+        SelectBuilder builder = SelectBuilder.builder("user")
+                .columns(List.of(User.class.getDeclaredFields()).stream().map(f -> f.getName()).toList());
+        String query = builder.build(false);
+        String countQuery = "SELECT COUNT(1) AS total FROM (" + query + ") AS count_table";
+        int total = 0;
+        try (PreparedStatement countPs = connection.prepareStatement(countQuery);
+                ResultSet countRs = countPs.executeQuery()) {
+            if (countRs.next()) {
+                total = countRs.getInt("total");
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        int offset = (request.getPageNumber() - 1) * request.getPageSize();
+
+        builder.limit(request.getPageSize() > total ? total : request.getPageSize()).offset(offset);
+        if (request.getSort() != null && request.getSort().getOrders() != null
+                && !request.getSort().getOrders().isEmpty()) {
+            builder.orderBy(request.getSort().getOrders());
+        }
+
+        List<E> result = null;
+        try (PreparedStatement ps = connection.prepareStatement(builder.build());
+                ResultSet rs = ps.executeQuery()) {
+            result = mapListResultSet(rs, cls);
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+
+        return new Page<>(total, request, result);
+    }
+
     @Override
     public void deleteById(K key) {
-        DeleteBuilder builder = DeleteBuilder.builder(tableName).where(keyField + " = ?", key);
+        DeleteBuilder builder = DeleteBuilder.builder(tableName).where(keyField.getName() + " = ?", key);
         System.out.println(builder.build());
         try (PreparedStatement ps = connection.prepareStatement(builder.build())) {
             setPreparedStatementValue(ps, builder.getParameters());
@@ -101,7 +171,7 @@ public abstract class AbstractReposistory<E, K> implements CrudReposistory<E, K>
 
     @Override
     public E findById(K key) {
-        SelectBuilder builder = SelectBuilder.builder(tableName).where(keyField + " = ?", key);
+        SelectBuilder builder = SelectBuilder.builder(tableName).where(keyField.getName() + " = ?", key);
         E entity = null;
         try (PreparedStatement ps = connection.prepareStatement(builder.build());) {
             setPreparedStatementValue(ps, builder.getParameters());
@@ -144,27 +214,26 @@ public abstract class AbstractReposistory<E, K> implements CrudReposistory<E, K>
     }
 
     @Override
-    public E merge(E entity) {
+    public E update(E entity) {
         try {
             UpdateBuilder builder = UpdateBuilder.builder(tableName);
             Object keyValue = null;
             for (Field field : fields) {
                 field.setAccessible(true);
                 Object value = field.get(entity);
-                if (field.getName().equals(keyField)) {
+                if (field.getName().equals(keyField.getName())) {
                     keyValue = value;
                     continue;
                 }
                 builder.set(field.getName(), value);
             }
-            builder.where(" WHERE " + keyField + " = ?", keyValue);
+            builder.where(" WHERE " + keyField.getName() + " = ?", keyValue);
 
             try (PreparedStatement ps = connection.prepareStatement(builder.build())) {
                 setPreparedStatementValue(ps, builder.getParameters());
                 int affected = ps.executeUpdate();
                 if (affected == 0) {
-                    // No row updated, treat as insert (merge semantics)
-                    return save(entity);
+                    throw new SQLException("No rows updated, entity may not exist.");
                 }
             }
             return entity;
@@ -208,14 +277,14 @@ public abstract class AbstractReposistory<E, K> implements CrudReposistory<E, K>
         }
     }
 
-    private String getKeyField(List<Field> fields) {
-        String keyField = null;
+    private Field getKeyField(List<Field> fields) {
+        Field keyField = null;
         for (Field field : fields) {
             if (field.isAnnotationPresent(Key.class)) {
                 if (keyField != null) {
                     throw new DuplicateKeyException();
                 }
-                keyField = field.getName();
+                keyField = field;
             }
         }
         return keyField;

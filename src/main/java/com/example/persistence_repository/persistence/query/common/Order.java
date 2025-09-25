@@ -1,4 +1,4 @@
-package com.example.persistence_repository.persistence.query;
+package com.example.persistence_repository.persistence.query.common;
 
 public class Order {
     private String column;
@@ -23,6 +23,14 @@ public class Order {
 
     public void setAscending(boolean isAscending) {
         this.isAscending = isAscending;
+    }
+
+    public static Order asc(String column) {
+        return new Order(column, true);
+    }
+
+    public static Order desc(String column) {
+        return new Order(column, false);
     }
 
 }

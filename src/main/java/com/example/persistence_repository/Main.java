@@ -8,6 +8,10 @@ import com.example.persistence_repository.entity.User;
 import com.example.persistence_repository.persistence.config.DBcontext;
 import com.example.persistence_repository.persistence.query.AbstractQueryBuilder;
 import com.example.persistence_repository.persistence.query.clause.ClauseTree;
+import com.example.persistence_repository.persistence.query.common.Order;
+import com.example.persistence_repository.persistence.query.common.Page;
+import com.example.persistence_repository.persistence.query.common.PageRequest;
+import com.example.persistence_repository.persistence.query.common.Sort;
 import com.example.persistence_repository.persistence.query.crud.DeleteBuilder;
 import com.example.persistence_repository.persistence.query.crud.InsertBuilder;
 import com.example.persistence_repository.persistence.query.crud.SelectBuilder;
@@ -16,10 +20,21 @@ import com.example.persistence_repository.persistence.query.crud.UpdateBuilder;
 public class Main {
     public static void main(String[] args) {
         UserDao userDao = new UserDao();
-        User user = new User(1, "name", "email");
-        userDao.merge(user);
-        // userDao.findAll().forEach(System.out::println);
+        Page<User> page = userDao.findAll(PageRequest.of(1, 20));
+        page.getContent().forEach(System.out::println);
+        System.out.println(page.getTotalElements());
+        System.out.println(page.getTotalPages());
+        // testSort();
 
+    }
+
+    public static void testSort() {
+        PageRequest pageRequest = PageRequest.of(6, 20, Sort.by(Order.asc("id"), Order.asc("name")));
+        UserDao userDao = new UserDao();
+        Page<User> page = userDao.findAll(pageRequest);
+        page.getContent().forEach(System.out::println);
+        System.out.println(page.getTotalElements());
+        System.out.println(page.getTotalPages());
     }
 
     public static AbstractQueryBuilder select(List<String> columns, String tableName) {

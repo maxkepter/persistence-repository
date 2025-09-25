@@ -40,7 +40,7 @@ public class InsertBuilder extends AbstractQueryBuilder {
     }
 
     @Override
-    public String build() {
+    public String createQuery() {
         if (tableName == null || tableName.isEmpty()) {
             throw new IllegalStateException("Table name is required for INSERT query");
         }
@@ -50,20 +50,32 @@ public class InsertBuilder extends AbstractQueryBuilder {
         if (values == null || values.isEmpty() || values.size() != columns.size()) {
             throw new IllegalStateException("Values must be provided for all columns in INSERT query");
         }
-
         StringBuilder query = new StringBuilder("INSERT INTO ");
         query.append(tableName).append(" (");
         query.append(String.join(", ", columns));
         query.append(") VALUES (");
         query.append(String.join(", ", values.stream().map(v -> "?").toList()));
         query.append(")");
-
         this.setParameters(values);
-
-        if (BuildQueryConfig.isPrintSql) {
-            System.out.println("Generated Query: \n" + query.toString());
-        }
         return query.toString();
+    }
+
+    @Override
+    public String build(boolean isPrintSql) {
+        String query = createQuery();
+        if (isPrintSql) {
+            System.out.println("Generated Query: " + query);
+        }
+        return query;
+    }
+
+    @Override
+    public String build() {
+        String query = createQuery();
+        if (BuildQueryConfig.isPrintSql) {
+            System.out.println("Generated Query: " + query);
+        }
+        return query;
     }
 
 }

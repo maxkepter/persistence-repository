@@ -5,9 +5,13 @@ public interface CrudReposistory<E, K> {
 
     E findById(K key);
 
-    E merge(E entity);
+    E update(E entity);
+
+    boolean isExist(K key);
 
     void deleteById(K key);
+
+    int count();
 
     Iterable<E> findAll();
 }
