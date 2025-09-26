@@ -5,6 +5,7 @@ package com.example.persistence_repository.persistence.query.common;
  * (ascending or descending).
  * 
  * @author Kepter
+ * @author Nguyen Anh Tu
  * @since 1.0
  * 
  */

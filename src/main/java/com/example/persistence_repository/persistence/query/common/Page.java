@@ -9,6 +9,9 @@ package com.example.persistence_repository.persistence.query.common;
  * and the pagination information via {@link PageRequest}.
  *
  * @param <T> the type of elements in the page content
+ * @author Kepter
+ * @author Nguyen Anh Tu
+ * @since 1.0
  */
 public class Page<T> {
     // The total number of elements across all pages.

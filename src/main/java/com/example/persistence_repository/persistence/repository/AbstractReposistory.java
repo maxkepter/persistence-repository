@@ -22,6 +22,24 @@ import com.example.persistence_repository.persistence.query.crud.InsertBuilder;
 import com.example.persistence_repository.persistence.query.crud.SelectBuilder;
 import com.example.persistence_repository.persistence.query.crud.UpdateBuilder;
 
+/**
+ * An abstract base class for implementing CRUD (Create, Read, Update, Delete)
+ * operations on entities of type {@code E} with primary key of type {@code K}.
+ * <p>
+ * This class provides common functionality for interacting with a database,
+ * including methods for saving, updating, deleting, and finding entities.
+ * It uses reflection to map entity fields to database columns and supports
+ * pagination through the {@link PageRequest} and {@link Page} classes.
+ * </p>
+ * 
+ * @param <E> the type of entity
+ * @param <K> the type of the primary key
+ * 
+ * @author Kepter
+ * @author Nguyen Anh Tu
+ * @since 1.0
+ * 
+ */
 public abstract class AbstractReposistory<E, K> implements CrudReposistory<E, K> {
 
     private Class<E> cls;
@@ -135,7 +153,6 @@ public abstract class AbstractReposistory<E, K> implements CrudReposistory<E, K>
     public void deleteById(K key) {
         Connection connection = TransactionManager.getConnection();
         DeleteBuilder builder = DeleteBuilder.builder(tableName).where(keyField.getName() + " = ?", key);
-        System.out.println(builder.build());
         try (PreparedStatement ps = connection.prepareStatement(builder.build())) {
             setPreparedStatementValue(ps, builder.getParameters());
             ps.execute();
@@ -205,7 +222,7 @@ public abstract class AbstractReposistory<E, K> implements CrudReposistory<E, K>
                 }
                 builder.set(field.getName(), value);
             }
-            builder.where(" WHERE " + keyField.getName() + " = ?", keyValue);
+            builder.where(keyField.getName() + " = ?", keyValue);
 
             try (PreparedStatement ps = connection.prepareStatement(builder.build())) {
                 setPreparedStatementValue(ps, builder.getParameters());

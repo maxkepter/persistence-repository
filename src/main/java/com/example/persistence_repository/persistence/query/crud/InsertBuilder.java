@@ -22,6 +22,7 @@ import com.example.persistence_repository.persistence.query.AbstractQueryBuilder
  * </p>
  * 
  * @author Kepter
+ * @author Nguyen Anh Tu
  * @since 1.0
  * 
  */

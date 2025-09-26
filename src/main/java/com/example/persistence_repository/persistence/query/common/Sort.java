@@ -16,6 +16,7 @@ import java.util.List;
  * @params orders can not be null or empty no need to check, want to know why?
  *         Read source code of by() method
  * @author Kepter
+ * @author Nguyen Anh Tu
  * @since 1.0
  */
 public class Sort {

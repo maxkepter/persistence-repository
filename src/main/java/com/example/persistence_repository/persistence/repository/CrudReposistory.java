@@ -1,5 +1,21 @@
 package com.example.persistence_repository.persistence.repository;
 
+/**
+ * Generic CRUD repository interface for managing entities in a database.
+ * <p>
+ * This interface defines the standard operations for Create, Read, Update,
+ * and Delete (CRUD) functionalities on entities of type E with primary key of
+ * type K.
+ * </p>
+ * 
+ * @param <E> the type of the entity
+ * @param <K> the type of the primary key
+ * 
+ * @author Kepter
+ * @author Nguyen Anh Tu
+ * @since 1.0
+ * 
+ */
 public interface CrudReposistory<E, K> {
     E save(E entity);
 

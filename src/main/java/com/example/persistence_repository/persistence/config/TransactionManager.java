@@ -39,6 +39,10 @@ import java.sql.SQLException;
  * resource leaks.
  * </p>
  * 
+ * @author Kepter
+ * @author Nguyen Anh Tu
+ * @since 1.0
+ * 
  */
 public class TransactionManager {
     // ThreadLocal to hold the connection for each thread
@@ -77,9 +81,7 @@ public class TransactionManager {
         }
         if (depth < 0) {
             throw new SQLException("No transaction to commit");
-        }
-
-        if (depth == 0) {
+        } else if (depth == 0) {
             connection.commit();
             connection.close();
             connectionHolder.remove();
@@ -101,9 +103,7 @@ public class TransactionManager {
         }
         if (depth < 0) {
             throw new SQLException("No transaction to rollback");
-        }
-
-        if (depth == 0) {
+        } else if (depth == 0) {
             connection.rollback();
             connection.close();
             connectionHolder.remove();

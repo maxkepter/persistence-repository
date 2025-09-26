@@ -3,6 +3,19 @@ package com.example.persistence_repository.persistence.query;
 import java.util.ArrayList;
 import java.util.List;
 
+/**
+ * Abstract base class for building SQL queries.
+ * Provides methods to set and get query parameters, and abstract methods
+ * for building the SQL query string.
+ * <p>
+ * Subclasses must implement the abstract methods to provide specific
+ * query-building logic.
+ * </p>
+ * 
+ * @author Kepter
+ * @author Nguyen Anh Tu
+ * @since 1.0
+ */
 public abstract class AbstractQueryBuilder {
     private List<Object> parameters;
 

@@ -16,6 +16,8 @@ import com.example.persistence_repository.persistence.query.crud.UpdateBuilder;
 
 public class Main {
     public static void main(String[] args) {
+        UserDao userDao = new UserDao();
+        userDao.findAll().forEach(System.out::println);
 
     }
 

@@ -20,6 +20,7 @@ package com.example.persistence_repository.persistence.query.common;
  * 
  * 
  * @author Kepter
+ * @author Nguyen Anh Tu
  * @since 1.0
  */
 public class PageRequest {
