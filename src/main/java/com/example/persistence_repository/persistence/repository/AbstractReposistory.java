@@ -374,6 +374,10 @@ public abstract class AbstractReposistory<E, K> implements CrudReposistory<E, K>
                 keyField = field;
             }
         }
+        if (keyField == null) {
+            throw new IllegalStateException("No field annotated with @Key found in class " + cls.getName());
+
+        }
         return keyField;
     }
 
