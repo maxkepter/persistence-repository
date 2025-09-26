@@ -2,9 +2,27 @@ package com.example.persistence_repository.persistence.query.crud;
 
 import java.util.List;
 
-import com.example.persistence_repository.persistence.config.BuildQueryConfig;
+import com.example.persistence_repository.persistence.config.RepositoryConfig;
 import com.example.persistence_repository.persistence.query.AbstractQueryBuilder;
 
+/**
+ * A builder class for constructing SQL DELETE queries with optional WHERE
+ * clause.
+ * <p>
+ * Example usage:
+ * 
+ * <pre>
+ * DeleteBuilder builder = DeleteBuilder.builder("users")
+ *         .where("id = ?", 1);
+ * String sql = builder.build();
+ * System.out.println(sql);
+ * // Output: DELETE FROM users WHERE id = ?
+ * </pre>
+ * </p>
+ * 
+ * @author Kepter
+ * @since 1.0
+ */
 public class DeleteBuilder extends AbstractQueryBuilder {
 
     public DeleteBuilder(String tableName) {
@@ -47,7 +65,7 @@ public class DeleteBuilder extends AbstractQueryBuilder {
     @Override
     public String build() {
         String query = createQuery();
-        if (BuildQueryConfig.isPrintSql) {
+        if (RepositoryConfig.isPrintSql) {
             System.out.println("Generated Query: " + query);
         }
         return query;

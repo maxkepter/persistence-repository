@@ -3,7 +3,7 @@ package com.example.persistence_repository.persistence.query;
 import java.util.ArrayList;
 import java.util.List;
 
-public abstract class AbstractQueryBuilder implements PrepareQueryBuilder {
+public abstract class AbstractQueryBuilder {
     private List<Object> parameters;
 
     protected String tableName;
@@ -21,4 +21,9 @@ public abstract class AbstractQueryBuilder implements PrepareQueryBuilder {
         return parameters;
     }
 
+    abstract public String build();
+
+    abstract public String build(boolean isPrintSql);
+
+    abstract public String createQuery();
 }

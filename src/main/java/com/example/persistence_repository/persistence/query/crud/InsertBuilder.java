@@ -3,9 +3,28 @@ package com.example.persistence_repository.persistence.query.crud;
 import java.util.ArrayList;
 import java.util.List;
 
-import com.example.persistence_repository.persistence.config.BuildQueryConfig;
+import com.example.persistence_repository.persistence.config.RepositoryConfig;
 import com.example.persistence_repository.persistence.query.AbstractQueryBuilder;
 
+/**
+ * A builder class for constructing SQL INSERT queries.
+ * <p>
+ * Example usage:
+ * 
+ * <pre>
+ * InsertBuilder builder = InsertBuilder.builder("users")
+ *         .columns("name", "email", "age")
+ *         .values("John Doe", "test@gmail.com", 30);
+ * String sql = builder.build();
+ * System.out.println(sql);
+ * // Output: INSERT INTO users (name, email, age) VALUES (?, ?, ?
+ * </pre>
+ * </p>
+ * 
+ * @author Kepter
+ * @since 1.0
+ * 
+ */
 public class InsertBuilder extends AbstractQueryBuilder {
     private List<String> columns;
     private List<Object> values;
@@ -72,7 +91,7 @@ public class InsertBuilder extends AbstractQueryBuilder {
     @Override
     public String build() {
         String query = createQuery();
-        if (BuildQueryConfig.isPrintSql) {
+        if (RepositoryConfig.isPrintSql) {
             System.out.println("Generated Query: " + query);
         }
         return query;

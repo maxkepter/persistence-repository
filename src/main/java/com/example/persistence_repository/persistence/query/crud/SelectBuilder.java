@@ -3,10 +3,34 @@ package com.example.persistence_repository.persistence.query.crud;
 import java.util.ArrayList;
 import java.util.List;
 
-import com.example.persistence_repository.persistence.config.BuildQueryConfig;
+import com.example.persistence_repository.persistence.config.RepositoryConfig;
 import com.example.persistence_repository.persistence.query.AbstractQueryBuilder;
 import com.example.persistence_repository.persistence.query.common.Order;
 
+/**
+ * A builder class for constructing SQL SELECT queries with various clauses
+ * such as WHERE, ORDER BY, LIMIT, and OFFSET.
+ * <p>
+ * Example usage:
+ * 
+ * <pre>
+ * SelectBuilder builder = SelectBuilder.builder("users")
+ *         .columns("id", "name", "email")
+ *         .distinct(true)
+ *         .where("age > ?", 18)
+ *         .orderBy(List.of(new Order("name", true)))
+ *         .limit(10)
+ *         .offset(5);
+ * String sql = builder.build();
+ * System.out.println(sql);
+ * // Output: SELECT DISTINCT id, name, email FROM users WHERE age > ? ORDER BY
+ * // name ASC LIMIT 10 OFFSET 5
+ * </pre>
+ * </p>
+ * 
+ * @author Kepter
+ * @since 1.0
+ */
 public class SelectBuilder extends AbstractQueryBuilder {
 
     private List<String> columns;
@@ -110,7 +134,7 @@ public class SelectBuilder extends AbstractQueryBuilder {
     @Override
     public String build() {
         String query = createQuery();
-        if (BuildQueryConfig.isPrintSql) {
+        if (RepositoryConfig.isPrintSql) {
             System.out.println("Generated Query: " + query);
         }
         return query;

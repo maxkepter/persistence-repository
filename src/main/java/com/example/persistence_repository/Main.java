@@ -1,13 +1,12 @@
 package com.example.persistence_repository;
 
-import java.util.Arrays;
+import java.sql.SQLException;
 import java.util.List;
 
 import com.example.persistence_repository.dao.UserDao;
 import com.example.persistence_repository.entity.User;
 import com.example.persistence_repository.persistence.config.DBcontext;
 import com.example.persistence_repository.persistence.query.AbstractQueryBuilder;
-import com.example.persistence_repository.persistence.query.clause.ClauseTree;
 import com.example.persistence_repository.persistence.query.common.Order;
 import com.example.persistence_repository.persistence.query.common.Page;
 import com.example.persistence_repository.persistence.query.common.PageRequest;
@@ -19,17 +18,11 @@ import com.example.persistence_repository.persistence.query.crud.UpdateBuilder;
 
 public class Main {
     public static void main(String[] args) {
-        UserDao userDao = new UserDao();
-        Page<User> page = userDao.findAll(PageRequest.of(1, 20));
-        page.getContent().forEach(System.out::println);
-        System.out.println(page.getTotalElements());
-        System.out.println(page.getTotalPages());
-        // testSort();
 
     }
 
     public static void testSort() {
-        PageRequest pageRequest = PageRequest.of(6, 20, Sort.by(Order.asc("id"), Order.asc("name")));
+        PageRequest pageRequest = PageRequest.of(1, 20, Sort.by(Order.asc("email"), Order.desc("id")));
         UserDao userDao = new UserDao();
         Page<User> page = userDao.findAll(pageRequest);
         page.getContent().forEach(System.out::println);
@@ -60,12 +53,6 @@ public class Main {
     public static AbstractQueryBuilder delete(List<String> columns, String tableName) {
         DeleteBuilder builder = DeleteBuilder.builder(tableName);
         return builder;
-    }
-
-    public static void where() {
-        ClauseTree clauseTree = ClauseTree.and(ClauseTree.create("id = ?", 1), ClauseTree.create("name = ?", "test"));
-        System.out.println(clauseTree.build());
-        System.out.println(clauseTree.getParameters());
     }
 
 }

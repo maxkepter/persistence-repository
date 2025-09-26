@@ -2,9 +2,29 @@ package com.example.persistence_repository.persistence.query.crud;
 
 import java.util.ArrayList;
 import java.util.List;
-import com.example.persistence_repository.persistence.config.BuildQueryConfig;
+import com.example.persistence_repository.persistence.config.RepositoryConfig;
 import com.example.persistence_repository.persistence.query.AbstractQueryBuilder;
 
+/**
+ * A builder class for constructing SQL UPDATE queries with SET and optional
+ * WHERE clause.
+ * <p>
+ * Example usage:
+ * 
+ * <pre>
+ * UpdateBuilder builder = UpdateBuilder.builder("users")
+ *         .set("name", "John Doe")
+ *         .set("email", "test@gmail.com")
+ *         .where("id = ?", 1);
+ * String sql = builder.build();
+ * System.out.println(sql);
+ * // Output: UPDATE users SET name = ?, email = ? WHERE id = ?
+ * </pre>
+ * </p>
+ * 
+ * @author Kepter
+ * @since 1.0
+ */
 public class UpdateBuilder extends AbstractQueryBuilder {
     private List<String> setClauses;
     private String whereClause;
@@ -62,7 +82,7 @@ public class UpdateBuilder extends AbstractQueryBuilder {
     @Override
     public String build() {
         String query = createQuery();
-        if (BuildQueryConfig.isPrintSql) {
+        if (RepositoryConfig.isPrintSql) {
             System.out.println("Generated Query: " + query);
         }
         return query;
