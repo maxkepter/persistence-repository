@@ -1,11 +1,9 @@
 package com.example.persistence_repository;
 
-import java.sql.SQLException;
 import java.util.List;
 
 import com.example.persistence_repository.dao.UserDao;
 import com.example.persistence_repository.entity.User;
-import com.example.persistence_repository.persistence.config.DBcontext;
 import com.example.persistence_repository.persistence.query.AbstractQueryBuilder;
 import com.example.persistence_repository.persistence.query.common.Order;
 import com.example.persistence_repository.persistence.query.common.Page;

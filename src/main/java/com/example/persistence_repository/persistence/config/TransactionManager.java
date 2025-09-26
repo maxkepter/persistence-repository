@@ -41,7 +41,10 @@ import java.sql.SQLException;
  * 
  */
 public class TransactionManager {
+    // ThreadLocal to hold the connection for each thread
     private static ThreadLocal<Connection> connectionHolder = new ThreadLocal<>();
+    // To keep track of transaction depth for nested transactions
+    private static ThreadLocal<Integer> transactionDepthHolder = ThreadLocal.withInitial(() -> 0);
 
     /**
      * Begins a new transaction by setting auto-commit to false on the current
@@ -51,10 +54,13 @@ public class TransactionManager {
      */
     public static void beginTransaction() throws SQLException {
 
-        Connection connection = DBcontext.createConnection();
-        connection.setAutoCommit(false);
-        connectionHolder.set(connection);
+        if (transactionDepthHolder.get() < 1 && connectionHolder.get() == null) {
+            Connection connection = DBcontext.createConnection();
+            connection.setAutoCommit(false);
+            connectionHolder.set(connection);
+        }
 
+        transactionDepthHolder.set(transactionDepthHolder.get() + 1);
     }
 
     /**
@@ -63,12 +69,22 @@ public class TransactionManager {
      * @throws SQLException
      */
     public static void commit() throws SQLException {
+        int depth = transactionDepthHolder.get() - 1;
+        transactionDepthHolder.set(depth);
         Connection connection = connectionHolder.get();
-        if (connection != null) {
+        if (connection == null) {
+            throw new SQLException("No transaction to commit");
+        }
+        if (depth < 0) {
+            throw new SQLException("No transaction to commit");
+        }
+
+        if (depth == 0) {
             connection.commit();
             connection.close();
             connectionHolder.remove();
         }
+
     }
 
     /**
@@ -77,12 +93,22 @@ public class TransactionManager {
      * @throws SQLException if a database access error occurs
      */
     public static void rollback() throws SQLException {
+        int depth = transactionDepthHolder.get() - 1;
+        transactionDepthHolder.set(depth);
         Connection connection = connectionHolder.get();
-        if (connection != null) {
+        if (connection == null) {
+            throw new SQLException("No transaction to rollback");
+        }
+        if (depth < 0) {
+            throw new SQLException("No transaction to rollback");
+        }
+
+        if (depth == 0) {
             connection.rollback();
             connection.close();
             connectionHolder.remove();
         }
+
     }
 
     /**
