@@ -15,6 +15,7 @@ import com.example.persistence_repository.persistence.annotation.Key;
 import com.example.persistence_repository.persistence.config.DBcontext;
 import com.example.persistence_repository.persistence.config.TransactionManager;
 import com.example.persistence_repository.persistence.exception.DuplicateKeyException;
+import com.example.persistence_repository.persistence.query.clause.ClauseBuilder;
 import com.example.persistence_repository.persistence.query.common.Page;
 import com.example.persistence_repository.persistence.query.common.PageRequest;
 import com.example.persistence_repository.persistence.query.crud.DeleteBuilder;
@@ -105,6 +106,28 @@ public abstract class AbstractReposistory<E, K> implements CrudReposistory<E, K>
         return result;
     }
 
+    public Iterable<E> findWithCondition(ClauseBuilder clause) {
+        Connection connection = DBcontext.getConnection();
+        SelectBuilder builder = SelectBuilder.builder(tableName)
+                .columns(fields.stream().map(f -> f.getName()).toList())
+                .where(clause.build());
+        builder.setParameters(clause.getParameters());
+        System.out.println(builder.getParameters());
+        List<E> result = null;
+        try (PreparedStatement preparedSt = connection.prepareStatement(builder.build());) {
+            setPreparedStatementValue(preparedSt, builder.getParameters());
+            try (ResultSet rs = preparedSt.executeQuery()) {
+                result = mapListResultSet(rs, cls);
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        return result;
+
+    }
+
     /**
      * Retrieves a paginated list of entities from the database based on the
      * provided {@link PageRequest}.
@@ -153,6 +176,18 @@ public abstract class AbstractReposistory<E, K> implements CrudReposistory<E, K>
     public void deleteById(K key) {
         Connection connection = TransactionManager.getConnection();
         DeleteBuilder builder = DeleteBuilder.builder(tableName).where(keyField.getName() + " = ?", key);
+        try (PreparedStatement ps = connection.prepareStatement(builder.build())) {
+            setPreparedStatementValue(ps, builder.getParameters());
+            ps.execute();
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+
+    public void deleteWithCondition(ClauseBuilder clause) {
+        Connection connection = TransactionManager.getConnection();
+        DeleteBuilder builder = DeleteBuilder.builder(tableName).where(clause.build());
+        builder.setParameters(clause.getParameters());
         try (PreparedStatement ps = connection.prepareStatement(builder.build())) {
             setPreparedStatementValue(ps, builder.getParameters());
             ps.execute();

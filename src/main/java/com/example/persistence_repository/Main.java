@@ -5,6 +5,7 @@ import java.util.List;
 import com.example.persistence_repository.dao.UserDao;
 import com.example.persistence_repository.entity.User;
 import com.example.persistence_repository.persistence.query.AbstractQueryBuilder;
+import com.example.persistence_repository.persistence.query.clause.ClauseBuilder;
 import com.example.persistence_repository.persistence.query.common.Order;
 import com.example.persistence_repository.persistence.query.common.Page;
 import com.example.persistence_repository.persistence.query.common.PageRequest;
@@ -17,7 +18,10 @@ import com.example.persistence_repository.persistence.query.crud.UpdateBuilder;
 public class Main {
     public static void main(String[] args) {
         UserDao userDao = new UserDao();
-        userDao.findAll().forEach(System.out::println);
+        System.out.println(userDao.findWithCondition(ClauseBuilder.builder()
+                .equal("id", 1)
+                .or()
+                .like("email", "%test%")));
 
     }
 
