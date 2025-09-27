@@ -21,7 +21,7 @@ public class Main {
         System.out.println(userDao.findWithCondition(ClauseBuilder.builder()
                 .equal("id", 1)
                 .or()
-                .like("email", "%test%")));
+                .like("email", "%test%"), PageRequest.of(1, 3)).getContent());
 
     }
 
