@@ -4,24 +4,17 @@ import java.util.List;
 
 import com.example.persistence_repository.dao.UserDao;
 import com.example.persistence_repository.entity.User;
-import com.example.persistence_repository.persistence.query.AbstractQueryBuilder;
-import com.example.persistence_repository.persistence.query.clause.ClauseBuilder;
+import com.example.persistence_repository.persistence.entity.EntityMeta;
 import com.example.persistence_repository.persistence.query.common.Order;
 import com.example.persistence_repository.persistence.query.common.Page;
 import com.example.persistence_repository.persistence.query.common.PageRequest;
 import com.example.persistence_repository.persistence.query.common.Sort;
-import com.example.persistence_repository.persistence.query.crud.DeleteBuilder;
-import com.example.persistence_repository.persistence.query.crud.InsertBuilder;
 import com.example.persistence_repository.persistence.query.crud.SelectBuilder;
-import com.example.persistence_repository.persistence.query.crud.UpdateBuilder;
 
 public class Main {
     public static void main(String[] args) {
-        UserDao userDao = new UserDao();
-        System.out.println(userDao.findWithCondition(ClauseBuilder.builder()
-                .equal("id", 1)
-                .or()
-                .like("email", "%test%"), PageRequest.of(1, 3)).getContent());
+
+        testSelectBuilder();
 
     }
 
@@ -34,29 +27,18 @@ public class Main {
         System.out.println(page.getTotalPages());
     }
 
-    public static AbstractQueryBuilder select(List<String> columns, String tableName) {
-
-        SelectBuilder builder = SelectBuilder.builder(tableName).columns(columns)
-                .where("id=?", 1);
-        return builder;
-    }
-
-    public static AbstractQueryBuilder insert(List<String> columns, String tableName) {
-        InsertBuilder builder = InsertBuilder.builder(tableName).columns(columns)
-                .values(1, "John", "test");
-
-        return builder;
-    }
-
-    public static AbstractQueryBuilder update(List<String> columns, String tableName) {
-        UpdateBuilder builder = UpdateBuilder.builder(tableName).set("id", 1).set("name",
-                "lmao");
-        return builder;
-    }
-
-    public static AbstractQueryBuilder delete(List<String> columns, String tableName) {
-        DeleteBuilder builder = DeleteBuilder.builder(tableName);
-        return builder;
+    public static void testSelectBuilder() {
+        SelectBuilder<User> builder = SelectBuilder.builder(EntityMeta.scanAnnotation(User.class))
+                .columns("id", "name", "email")
+                .distinct(true)
+                .where("age > ?", 18)
+                .orderBy(List.of(new Order("name", true)))
+                .limit(10)
+                .offset(5);
+        String sql = builder.build();
+        System.out.println(sql);
+        // Output: SELECT DISTINCT id, name, email FROM users WHERE age > ? ORDER BY
+        // name ASC LIMIT 10 OFFSET 5
     }
 
 }

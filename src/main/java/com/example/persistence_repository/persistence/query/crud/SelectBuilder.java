@@ -4,6 +4,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 import com.example.persistence_repository.persistence.config.RepositoryConfig;
+import com.example.persistence_repository.persistence.entity.EntityMeta;
 import com.example.persistence_repository.persistence.query.AbstractQueryBuilder;
 import com.example.persistence_repository.persistence.query.common.Order;
 
@@ -32,62 +33,76 @@ import com.example.persistence_repository.persistence.query.common.Order;
  * @author Nguyen Anh Tu
  * @since 1.0
  */
-public class SelectBuilder extends AbstractQueryBuilder {
+public class SelectBuilder<E> extends AbstractQueryBuilder<E> {
 
     private List<String> columns;
     private boolean isDistinct;
     private String whereClause;
     List<Order> orderByColumns;
+    private String alias;
     private Integer limit;
     private Integer offset;
 
-    public SelectBuilder(String tableName) {
-        super(tableName);
+    public SelectBuilder(EntityMeta<E> entityMeta) {
+        super(entityMeta);
         this.orderByColumns = new ArrayList<>();
     }
 
-    public static SelectBuilder builder(String tableName) {
-        return new SelectBuilder(tableName);
+    public static <E> SelectBuilder<E> builder(EntityMeta<E> entityMeta) {
+        if (entityMeta == null) {
+            throw new IllegalArgumentException("EntityMeta cannot be null");
+        }
+        return new SelectBuilder<E>(entityMeta);
     }
 
-    public SelectBuilder columns(String... columns) {
+    public SelectBuilder<E> alias(String alias) {
+        this.alias = alias;
+        return this;
+    }
+
+    public SelectBuilder<E> columns(String... columns) {
         this.columns = List.of(columns);
         return this;
     }
 
-    public SelectBuilder columns(List<String> columns) {
+    public SelectBuilder<E> columns(List<String> columns) {
         this.columns = columns;
         return this;
     }
 
-    public SelectBuilder distinct(boolean isDistinct) {
+    public SelectBuilder<E> distinct(boolean isDistinct) {
         this.isDistinct = isDistinct;
         return this;
     }
 
-    public SelectBuilder where(String whereClause, Object... params) {
+    public SelectBuilder<E> where(String whereClause, Object... params) {
         this.getParameters().addAll(List.of(params));
         this.whereClause = whereClause;
         return this;
     }
 
-    public SelectBuilder orderBy(List<Order> orderByColumns) {
+    public SelectBuilder<E> orderBy(List<Order> orderByColumns) {
         this.orderByColumns = orderByColumns;
         return this;
     }
 
-    public SelectBuilder limit(int limit) {
+    public SelectBuilder<E> limit(int limit) {
         this.limit = limit;
         return this;
     }
 
-    public SelectBuilder offset(int offset) {
+    public SelectBuilder<E> offset(int offset) {
         this.offset = offset;
         return this;
     }
 
     @Override
     public String createQuery() {
+        String tableName = entityMeta.getTableName();
+        String tempAlias = alias;
+        if (alias == null || alias.isEmpty()) {
+            tempAlias = tableName;
+        }
         if (tableName == null || tableName.isEmpty()) {
             throw new IllegalStateException("Table name is required for SELECT query");
         }
@@ -98,9 +113,10 @@ public class SelectBuilder extends AbstractQueryBuilder {
         if (columns == null || columns.isEmpty()) {
             query.append("*");
         } else {
-            query.append(String.join(", ", columns));
+            query.append(tempAlias).append(".").append(String.join(", ", columns));
         }
         query.append(" FROM ").append(tableName);
+        query.append(" AS ").append(tempAlias);
         if (whereClause != null && !whereClause.isEmpty()) {
             query.append(" WHERE ").append(whereClause);
         }

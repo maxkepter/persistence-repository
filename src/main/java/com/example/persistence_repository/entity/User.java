@@ -1,11 +1,17 @@
 package com.example.persistence_repository.entity;
 
+import com.example.persistence_repository.persistence.annotation.Column;
+import com.example.persistence_repository.persistence.annotation.Entity;
 import com.example.persistence_repository.persistence.annotation.Key;
 
+@Entity(tableName = "users")
 public class User {
     @Key
+    @Column
     private int id;
+    @Column(type = "VARCHAR", length = 100)
     private String name;
+    @Column(type = "VARCHAR", length = 100)
     private String email;
 
     public int getId() {

@@ -1,8 +1,10 @@
 package com.example.persistence_repository.persistence.query.crud;
 
 import java.util.List;
+import java.util.function.Supplier;
 
 import com.example.persistence_repository.persistence.config.RepositoryConfig;
+import com.example.persistence_repository.persistence.entity.EntityMeta;
 import com.example.persistence_repository.persistence.query.AbstractQueryBuilder;
 
 /**
@@ -24,16 +26,16 @@ import com.example.persistence_repository.persistence.query.AbstractQueryBuilder
  * @author Nguyen Anh Tu
  * @since 1.0
  */
-public class DeleteBuilder extends AbstractQueryBuilder {
+public class DeleteBuilder<E> extends AbstractQueryBuilder<E> {
 
-    public DeleteBuilder(String tableName) {
-        super(tableName);
+    public DeleteBuilder(EntityMeta<E> entityMeta) {
+        super(entityMeta);
     }
 
     private String whereClause;
 
-    public static DeleteBuilder builder(String tableName) {
-        return new DeleteBuilder(tableName);
+    public static <E> DeleteBuilder<E> builder(EntityMeta<E> entityMeta) {
+        return new DeleteBuilder<E>(entityMeta);
     }
 
     /**
@@ -54,7 +56,7 @@ public class DeleteBuilder extends AbstractQueryBuilder {
      * @param values      the values to be set in the WHERE clause
      * @return the current DeleteBuilder instance for method chaining
      */
-    public DeleteBuilder where(String whereClause, Object... values) {
+    public DeleteBuilder<E> where(String whereClause, Object... values) {
         this.whereClause = whereClause;
         this.getParameters().addAll(List.of(values));
         return this;
@@ -69,10 +71,10 @@ public class DeleteBuilder extends AbstractQueryBuilder {
      */
     @Override
     public String createQuery() {
-        if (tableName == null || tableName.isEmpty()) {
+        if (entityMeta.getTableName() == null || entityMeta.getTableName().isEmpty()) {
             throw new IllegalStateException("Table name is required for DELETE statement.");
         }
-        StringBuilder query = new StringBuilder("DELETE FROM ").append(tableName);
+        StringBuilder query = new StringBuilder("DELETE FROM ").append(entityMeta.getTableName());
         if (whereClause != null && !whereClause.isEmpty()) {
             query.append(" WHERE ").append(whereClause);
         }

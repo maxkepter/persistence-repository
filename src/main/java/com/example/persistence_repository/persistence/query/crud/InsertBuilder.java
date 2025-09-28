@@ -1,9 +1,9 @@
 package com.example.persistence_repository.persistence.query.crud;
 
-import java.util.ArrayList;
 import java.util.List;
 
 import com.example.persistence_repository.persistence.config.RepositoryConfig;
+import com.example.persistence_repository.persistence.entity.EntityMeta;
 import com.example.persistence_repository.persistence.query.AbstractQueryBuilder;
 
 /**
@@ -26,41 +26,42 @@ import com.example.persistence_repository.persistence.query.AbstractQueryBuilder
  * @since 1.0
  * 
  */
-public class InsertBuilder extends AbstractQueryBuilder {
+public class InsertBuilder<E> extends AbstractQueryBuilder<E> {
+
+    public InsertBuilder(EntityMeta<E> entityMeta) {
+        super(entityMeta);
+    }
+
     private List<String> columns;
     private List<Object> values;
 
-    public InsertBuilder(String tableName) {
-        super(tableName);
-        this.values = new ArrayList<>();
+    public static <E> InsertBuilder<E> builder(EntityMeta<E> entityMeta) {
+        return new InsertBuilder<E>(entityMeta);
     }
 
-    public static InsertBuilder builder(String tableName) {
-        return new InsertBuilder(tableName);
-    }
-
-    public InsertBuilder columns(List<String> columns) {
+    public InsertBuilder<E> columns(List<String> columns) {
         this.columns = columns;
         return this;
     }
 
-    public InsertBuilder columns(String... columns) {
+    public InsertBuilder<E> columns(String... columns) {
         this.columns = List.of(columns);
         return this;
     }
 
-    public InsertBuilder values(List<Object> values) {
+    public InsertBuilder<E> values(List<Object> values) {
         this.values = values;
         return this;
     }
 
-    public InsertBuilder values(Object... values) {
+    public InsertBuilder<E> values(Object... values) {
         this.values.addAll(List.of(values));
         return this;
     }
 
     @Override
     public String createQuery() {
+        String tableName = entityMeta.getTableName();
         if (tableName == null || tableName.isEmpty()) {
             throw new IllegalStateException("Table name is required for INSERT query");
         }

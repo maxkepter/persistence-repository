@@ -3,6 +3,8 @@ package com.example.persistence_repository.persistence.query;
 import java.util.ArrayList;
 import java.util.List;
 
+import com.example.persistence_repository.persistence.entity.EntityMeta;
+
 /**
  * Abstract base class for building SQL queries.
  * Provides methods to set and get query parameters, and abstract methods
@@ -16,13 +18,12 @@ import java.util.List;
  * @author Nguyen Anh Tu
  * @since 1.0
  */
-public abstract class AbstractQueryBuilder {
+public abstract class AbstractQueryBuilder<E> {
     private List<Object> parameters;
+    protected EntityMeta<E> entityMeta;
 
-    protected String tableName;
-
-    public AbstractQueryBuilder(String tableName) {
-        this.tableName = tableName;
+    public AbstractQueryBuilder(EntityMeta<E> entityMeta) {
+        this.entityMeta = entityMeta;
         this.parameters = new ArrayList<>();
     }
 

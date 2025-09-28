@@ -14,5 +14,11 @@ package com.example.persistence_repository.persistence.exception;
  * 
  */
 public class DuplicateKeyException extends RuntimeException {
+    public DuplicateKeyException() {
+        super("Duplicate key found.");
+    }
 
+    public DuplicateKeyException(String message) {
+        super(message);
+    }
 }
