@@ -1,6 +1,8 @@
-package com.example.persistence_repository.persistence.entity;
+package com.example.persistence_repository.persistence.entity.relation;
 
 import java.lang.reflect.Field;
+
+import com.example.persistence_repository.persistence.entity.FetchMode;
 
 /**
  * Immutable metadata descriptor for a single relationship declared on an entity
@@ -41,15 +43,17 @@ public class RelationshipMeta {
     private final String joinColumn;
     private final String mappedBy;
     private final boolean collection;
+    private final FetchMode fetchMode;
 
     public RelationshipMeta(RelationshipType type, Field field, Class<?> targetType, String joinColumn, String mappedBy,
-            boolean collection) {
+            boolean collection, FetchMode fetchMode) {
         this.type = type;
         this.field = field;
         this.targetType = targetType;
         this.joinColumn = joinColumn;
         this.mappedBy = mappedBy;
         this.collection = collection;
+        this.fetchMode = fetchMode == null ? FetchMode.LAZY : fetchMode;
         this.field.setAccessible(true);
     }
 
@@ -95,5 +99,12 @@ public class RelationshipMeta {
      */
     public boolean isCollection() {
         return collection;
+    }
+
+    /**
+     * @return configured fetch strategy (never null; defaults to LAZY)
+     */
+    public FetchMode getFetchMode() {
+        return fetchMode;
     }
 }

@@ -42,6 +42,7 @@ public class SelectBuilder<E> extends AbstractQueryBuilder<E> {
     private String alias;
     private Integer limit;
     private Integer offset;
+    private final List<String> joins = new ArrayList<>();
 
     public SelectBuilder(EntityMeta<E> entityMeta) {
         super(entityMeta);
@@ -57,6 +58,33 @@ public class SelectBuilder<E> extends AbstractQueryBuilder<E> {
 
     public SelectBuilder<E> alias(String alias) {
         this.alias = alias;
+        return this;
+    }
+
+    /**
+     * Adds a raw INNER JOIN clause using the provided table, alias and ON
+     * predicate.
+     * Convenience for common join; use {@link #join(String, String)} for fully
+     * custom.
+     */
+    public SelectBuilder<E> innerJoin(String tableAndAlias, String onPredicate) {
+        return join("INNER JOIN " + tableAndAlias + " ON " + onPredicate);
+    }
+
+    /**
+     * Adds a raw LEFT JOIN clause.
+     */
+    public SelectBuilder<E> leftJoin(String tableAndAlias, String onPredicate) {
+        return join("LEFT JOIN " + tableAndAlias + " ON " + onPredicate);
+    }
+
+    /**
+     * Adds an arbitrary JOIN fragment. Caller responsible for correctness.
+     */
+    public SelectBuilder<E> join(String fragment) {
+        if (fragment != null && !fragment.isBlank()) {
+            joins.add(fragment.trim());
+        }
         return this;
     }
 
@@ -100,8 +128,11 @@ public class SelectBuilder<E> extends AbstractQueryBuilder<E> {
     public String createQuery() {
         String tableName = entityMeta.getTableName();
         String tempAlias = alias;
-        if (alias == null || alias.isEmpty()) {
+        boolean useAlias = true;
+        if (alias == null || alias.isEmpty() || alias.equalsIgnoreCase(tableName)) {
+            // Không thật sự cần alias nếu không join
             tempAlias = tableName;
+            useAlias = false; // tạm thời, sẽ bật lại nếu có join
         }
         if (tableName == null || tableName.isEmpty()) {
             throw new IllegalStateException("Table name is required for SELECT query");
@@ -111,12 +142,41 @@ public class SelectBuilder<E> extends AbstractQueryBuilder<E> {
             query.append("DISTINCT ");
         }
         if (columns == null || columns.isEmpty()) {
-            query.append("*");
+            // Nếu không có join và alias không cần thiết -> dùng * đơn giản
+            if (joins.isEmpty()) {
+                query.append("*");
+            } else {
+                // có join thì giữ alias để tránh ambiguity
+                query.append(tempAlias).append(".*");
+                useAlias = true; // buộc dùng alias vì đã join
+            }
         } else {
-            query.append(tempAlias).append(".").append(String.join(", ", columns));
+            // If caller already qualified columns, don't prefix; else prefix with alias
+            List<String> rendered = new ArrayList<>();
+            for (String c : columns) {
+                if (c.contains(".")) {
+                    rendered.add(c);
+                } else {
+                    if (joins.isEmpty() && !useAlias) {
+                        rendered.add(c); // không cần prefix khi không join
+                    } else {
+                        rendered.add(tempAlias + "." + c);
+                        useAlias = true; // cần alias nếu đã prefix
+                    }
+                }
+            }
+            query.append(String.join(", ", rendered));
         }
         query.append(" FROM ").append(tableName);
-        query.append(" AS ").append(tempAlias);
+        if (useAlias) {
+            query.append(" AS ").append(tempAlias);
+        }
+        // joins
+        if (!joins.isEmpty()) {
+            for (String j : joins) {
+                query.append(' ').append(j);
+            }
+        }
         if (whereClause != null && !whereClause.isEmpty()) {
             query.append(" WHERE ").append(whereClause);
         }

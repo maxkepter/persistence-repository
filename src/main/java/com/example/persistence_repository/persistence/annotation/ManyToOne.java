@@ -5,8 +5,12 @@ import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
 import java.lang.annotation.Target;
 
+import com.example.persistence_repository.persistence.entity.FetchMode;
+
 @Target({ ElementType.FIELD })
 @Retention(RetentionPolicy.RUNTIME)
 public @interface ManyToOne {
     String joinColumn();
+
+    FetchMode fetch() default FetchMode.LAZY;
 }

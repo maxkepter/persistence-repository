@@ -14,6 +14,8 @@ import com.example.persistence_repository.persistence.annotation.Key;
 import com.example.persistence_repository.persistence.annotation.ManyToOne;
 import com.example.persistence_repository.persistence.annotation.OneToMany;
 import com.example.persistence_repository.persistence.annotation.OneToOne;
+import com.example.persistence_repository.persistence.entity.relation.RelationshipMeta;
+import com.example.persistence_repository.persistence.entity.relation.RelationshipType;
 import com.example.persistence_repository.persistence.exception.DuplicateKeyException;
 
 /**
@@ -112,13 +114,25 @@ public class EntityMeta<E> {
 
             if (field.isAnnotationPresent(ManyToOne.class)) {
                 ManyToOne ann = field.getAnnotation(ManyToOne.class);
+                Class<?> targetType = field.getType();
+                // Unwrap LazyReference<T> nếu quan hệ được khai báo dạng LazyReference<Book>
+                if (targetType == LazyReference.class) {
+                    Type gtype = field.getGenericType();
+                    if (gtype instanceof ParameterizedType pt) {
+                        Type[] args = pt.getActualTypeArguments();
+                        if (args.length == 1 && args[0] instanceof Class<?> c) {
+                            targetType = c;
+                        }
+                    }
+                }
                 relationships.add(new RelationshipMeta(
                         RelationshipType.MANY_TO_ONE,
                         field,
-                        field.getType(),
+                        targetType,
                         ann.joinColumn(),
                         null,
-                        false));
+                        false,
+                        ann.fetch()));
             }
 
             if (field.isAnnotationPresent(OneToMany.class)) {
@@ -137,7 +151,8 @@ public class EntityMeta<E> {
                         target,
                         ann.joinColumn(),
                         ann.mappedBy(),
-                        true));
+                        true,
+                        ann.fetch()));
             }
 
             if (field.isAnnotationPresent(OneToOne.class)) {
@@ -148,10 +163,13 @@ public class EntityMeta<E> {
                         field.getType(),
                         ann.joinColumn(),
                         ann.mappedBy(),
-                        false));
+                        false,
+                        ann.fetch()));
             }
 
-            String columnName = field.getName().toLowerCase();
+            // Mặc định: dùng đúng tên field làm tên cột (giữ nguyên chữ hoa/thường) để đồng
+            // nhất với code dùng field.getName()
+            String columnName = field.getName();
             String type = "VARCHAR";
             int length = 255;
             boolean nullable = true;

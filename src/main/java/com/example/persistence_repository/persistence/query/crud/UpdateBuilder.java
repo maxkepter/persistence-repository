@@ -48,7 +48,15 @@ public class UpdateBuilder<E> extends AbstractQueryBuilder<E> {
     }
 
     public UpdateBuilder<E> where(String whereClause, Object... params) {
-        this.getParameters().addAll(List.of(params));
+        if (params == null || params.length == 0) {
+            throw new IllegalArgumentException("where params empty or null");
+        }
+        for (Object p : params) {
+            if (p == null) {
+                throw new IllegalArgumentException("Where param cannot be null");
+            }
+            this.getParameters().add(p);
+        }
         this.whereClause = whereClause;
         return this;
     }

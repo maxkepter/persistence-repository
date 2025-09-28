@@ -8,11 +8,19 @@
     <artifactId>persistence-reposistory</artifactId>
     <version>1.0-SNAPSHOT</version>
 <dependencies>
-    <!-- MySQL Connector -->
+    <!-- MySQL Connector (temporarily kept; production config commented in RepositoryConfig) -->
     <dependency>
         <groupId>com.mysql</groupId>
         <artifactId>mysql-connector-j</artifactId>
         <version>9.4.0</version>
+        <scope>runtime</scope>
+    </dependency>
+
+    <!-- H2 In-Memory Database (runtime for demo + tests) -->
+    <dependency>
+        <groupId>com.h2database</groupId>
+        <artifactId>h2</artifactId>
+        <version>2.2.224</version>
     </dependency>
 
     <!-- JUnit 5 (Jupiter) for testing -->
