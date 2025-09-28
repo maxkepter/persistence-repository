@@ -115,7 +115,7 @@ public class EntityMeta<E> {
             if (field.isAnnotationPresent(ManyToOne.class)) {
                 ManyToOne ann = field.getAnnotation(ManyToOne.class);
                 Class<?> targetType = field.getType();
-                // Unwrap LazyReference<T> nếu quan hệ được khai báo dạng LazyReference<Book>
+                // Unwrap LazyReference<T> if relationship is declared as LazyReference<Book>
                 if (targetType == LazyReference.class) {
                     Type gtype = field.getGenericType();
                     if (gtype instanceof ParameterizedType pt) {
@@ -167,8 +167,8 @@ public class EntityMeta<E> {
                         ann.fetch()));
             }
 
-            // Mặc định: dùng đúng tên field làm tên cột (giữ nguyên chữ hoa/thường) để đồng
-            // nhất với code dùng field.getName()
+            // Default: use exact field name as column name (preserve case) for consistency
+            // with code using field.getName()
             String columnName = field.getName();
             String type = "VARCHAR";
             int length = 255;
