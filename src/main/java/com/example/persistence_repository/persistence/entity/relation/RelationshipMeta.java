@@ -2,8 +2,6 @@ package com.example.persistence_repository.persistence.entity.relation;
 
 import java.lang.reflect.Field;
 
-import com.example.persistence_repository.persistence.entity.FetchMode;
-
 /**
  * Immutable metadata descriptor for a single relationship declared on an entity
  * field.

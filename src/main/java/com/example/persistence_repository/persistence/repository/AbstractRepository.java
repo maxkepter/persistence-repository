@@ -7,6 +7,7 @@ import java.sql.ResultSet;
 import java.sql.ResultSetMetaData;
 import java.util.HashMap;
 import java.util.Map;
+
 import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.List;
@@ -15,10 +16,9 @@ import com.example.persistence_repository.persistence.annotation.Column;
 import com.example.persistence_repository.persistence.config.DBcontext;
 import com.example.persistence_repository.persistence.config.TransactionManager;
 import com.example.persistence_repository.persistence.entity.EntityMeta;
-
-import com.example.persistence_repository.persistence.entity.FetchMode;
 import com.example.persistence_repository.persistence.entity.ColumnMeta;
 import com.example.persistence_repository.persistence.entity.LazyReference;
+import com.example.persistence_repository.persistence.entity.relation.FetchMode;
 import com.example.persistence_repository.persistence.entity.relation.RelationshipMeta;
 import com.example.persistence_repository.persistence.entity.LazyList;
 import com.example.persistence_repository.persistence.query.clause.ClauseBuilder;
@@ -47,7 +47,7 @@ import com.example.persistence_repository.persistence.query.crud.UpdateBuilder;
  * @since 1.0
  * 
  */
-public abstract class AbstractReposistory<E, K> implements CrudReposistory<E, K> {
+public abstract class AbstractRepository<E, K> implements CrudRepository<E, K> {
 
     private final Class<E> cls;
     private final EntityMeta<E> entityMeta;
@@ -57,7 +57,7 @@ public abstract class AbstractReposistory<E, K> implements CrudReposistory<E, K>
     private final List<Field> persistentFields;
     private final Field keyField;
 
-    public AbstractReposistory(Class<E> cls) {
+    public AbstractRepository(Class<E> cls) {
         this.cls = cls;
         // Build metadata once
         this.entityMeta = EntityMeta.scanAnnotation(cls);
@@ -125,6 +125,7 @@ public abstract class AbstractReposistory<E, K> implements CrudReposistory<E, K>
         return result;
     }
 
+    @Override
     public Iterable<E> findWithCondition(ClauseBuilder clause) {
         Connection connection = DBcontext.getConnection();
         SelectBuilder<E> builder = SelectBuilder.builder(entityMeta)
@@ -394,20 +395,20 @@ public abstract class AbstractReposistory<E, K> implements CrudReposistory<E, K>
         int colCount = meta.getColumnCount();
         E obj = cls.getDeclaredConstructor().newInstance();
 
-        // Tạo map tên cột (lowercase) -> index để tìm nhanh
+        // Create a map of column labels to their indices for quick lookup
         Map<String, Integer> labelIndex = new HashMap<>();
         for (int i = 1; i <= colCount; i++) {
             labelIndex.put(meta.getColumnLabel(i).toLowerCase(), i);
         }
 
-        // Duyệt các field có @Column trong metadata
+        // Map columns to fields
         for (Map.Entry<String, ColumnMeta> entry : entityMeta.getFieldToColumnMap().entrySet()) {
-            String fieldName = entry.getKey(); // tên field
+            String fieldName = entry.getKey();
             ColumnMeta colMeta = entry.getValue();
             String physicalCol = colMeta.getName();
             Integer idx = labelIndex.get(physicalCol.toLowerCase());
             if (idx == null) {
-                continue; // cột không có trong result set
+                continue; // column not in result set
             }
             Object value = rs.getObject(idx);
             try {
@@ -431,7 +432,12 @@ public abstract class AbstractReposistory<E, K> implements CrudReposistory<E, K>
                 if (rel.isCollection()) {
                     // Collection side: assign LazyList placeholder (no immediate fetch even if
                     // EAGER until batch logic exists)
-                    LazyList<?> list = new LazyList<>(List::of); // empty placeholder supplier
+                    var repo = resolveRepository(rel.getTargetType());
+                    int keyIdx = labelIndex.get(keyField.getName().toLowerCase());
+                    Object keyVal = rs.getObject(keyIdx);
+                    @SuppressWarnings("unchecked")
+                    LazyList<?> list = new LazyList<Object>(() -> (List) repo
+                            .findWithCondition(ClauseBuilder.builder().equal(keyField.getName(), keyVal)));
                     f.set(obj, list);
                     continue;
                 }
@@ -439,44 +445,22 @@ public abstract class AbstractReposistory<E, K> implements CrudReposistory<E, K>
                 if (rel.getFetchMode() == FetchMode.EAGER) {
                     // Attempt eager load via repository lookup if available
                     var repo = resolveRepository(rel.getTargetType());
-                    if (repo != null) {
-                        // Assume FK column stored on this row as rel.getJoinColumn()
-                        Object fkValue = null;
-                        if (rel.getJoinColumn() != null && !rel.getJoinColumn().isBlank()) {
-                            // attempt to read column by name (case-insensitive fallback loop)
-                            Integer fkIdx = labelIndex.get(rel.getJoinColumn().toLowerCase());
-                            if (fkIdx != null) {
-                                fkValue = rs.getObject(fkIdx);
-                            }
+
+                    // Assume FK column stored on this row as rel.getJoinColumn()
+                    Object fkValue = null;
+                    if (rel.getJoinColumn() != null && !rel.getJoinColumn().isBlank()) {
+                        // attempt to read column by name (case-insensitive fallback loop)
+                        Integer fkIdx = labelIndex.get(rel.getJoinColumn().toLowerCase());
+                        if (fkIdx != null) {
+                            fkValue = rs.getObject(fkIdx);
                         }
-                        Object related = fkValue == null ? null : repo.findById(fkValue);
-                        f.set(obj, related);
-                    } else {
-                        // repository not available -> fallback to lazy reference to allow later
-                        // resolution
-                        LazyReference<?> ref = new LazyReference<>(() -> {
-                            var r = resolveRepository(rel.getTargetType());
-                            if (r == null)
-                                return null;
-                            Object fk = null;
-                            try {
-                                if (rel.getJoinColumn() != null) {
-                                    fk = rs.getObject(rel.getJoinColumn());
-                                }
-                            } catch (SQLException e) {
-                                return null;
-                            }
-                            return fk == null ? null : r.findById(fk);
-                        });
-                        // pre-load because fetchMode = EAGER but repo absent
-                        ref.forceLoad();
-                        f.set(obj, ref.get());
                     }
+                    Object related = fkValue == null ? null : repo.findById(fkValue);
+                    f.set(obj, related);
+
                 } else { // LAZY
                     LazyReference<?> ref = new LazyReference<>(() -> {
-                        var r = resolveRepository(rel.getTargetType());
-                        if (r == null)
-                            return null;
+                        var repo = resolveRepository(rel.getTargetType());
                         Object fk = null;
                         if (rel.getJoinColumn() != null) {
                             Integer fkIdx = labelIndex.get(rel.getJoinColumn().toLowerCase());
@@ -487,7 +471,7 @@ public abstract class AbstractReposistory<E, K> implements CrudReposistory<E, K>
                                 }
                             }
                         }
-                        return fk == null ? null : r.findById(fk);
+                        return fk == null ? null : repo.findById(fk);
                     });
                     f.set(obj, ref);
                 }
@@ -572,11 +556,11 @@ public abstract class AbstractReposistory<E, K> implements CrudReposistory<E, K>
     }
 
     /**
-     * Hook for future repository lookup for eager relation loading.
-     * Subclasses can override and provide a registry.
+     * Resolves and returns a repository instance for the specified target entity
+     * type.
      */
-    protected <R> CrudReposistory<R, Object> resolveRepository(Class<R> targetType) {
-        return null; // placeholder
-    }
+    protected <R> CrudRepository<R, Object> resolveRepository(Class<R> targetType) {
 
+        return (CrudRepository<R, Object>) new SimpleRepository<R, Object>(targetType);
+    }
 }

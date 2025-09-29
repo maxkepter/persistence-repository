@@ -7,13 +7,13 @@ import com.example.persistence_repository.persistence.annotation.Column;
 import com.example.persistence_repository.persistence.annotation.Entity;
 import com.example.persistence_repository.persistence.annotation.Key;
 import com.example.persistence_repository.persistence.annotation.OneToMany;
-import com.example.persistence_repository.persistence.entity.FetchMode;
+import com.example.persistence_repository.persistence.entity.relation.FetchMode;
 
 @Entity(tableName = "Author")
 public class Author {
     @Key
     @Column(type = "INT")
-    private Integer AuthorID; // dùng wrapper cho null safety khi insert auto increment
+    private Integer AuthorID;
 
     @Column(length = 100, nullable = false)
     private String Name;
@@ -24,9 +24,8 @@ public class Author {
     @Column(length = 50)
     private String Nationality;
 
-    // Quan hệ 1-n với Book (Book.AuthorID)
     @OneToMany(mappedBy = "AuthorID", joinColumn = "AuthorID", fetch = FetchMode.LAZY)
-    private List<Book> books; // sẽ được gán LazyList trong mapResultSet
+    private List<Book> books;
 
     public Author() {
     }

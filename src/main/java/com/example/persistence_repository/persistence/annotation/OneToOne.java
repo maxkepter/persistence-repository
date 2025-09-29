@@ -5,7 +5,7 @@ import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
 import java.lang.annotation.Target;
 
-import com.example.persistence_repository.persistence.entity.FetchMode;
+import com.example.persistence_repository.persistence.entity.relation.FetchMode;
 
 /**
  * Defines a one-to-one association between two entities. At most one instance

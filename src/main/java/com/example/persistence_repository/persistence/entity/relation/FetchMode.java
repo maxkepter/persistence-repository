@@ -1,4 +1,4 @@
-package com.example.persistence_repository.persistence.entity;
+package com.example.persistence_repository.persistence.entity.relation;
 
 /**
  * Fetch strategy hint for relationship resolution.

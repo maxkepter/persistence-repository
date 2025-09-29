@@ -4,7 +4,7 @@ import com.example.persistence_repository.persistence.annotation.Column;
 import com.example.persistence_repository.persistence.annotation.Entity;
 import com.example.persistence_repository.persistence.annotation.Key;
 import com.example.persistence_repository.persistence.annotation.ManyToOne;
-import com.example.persistence_repository.persistence.entity.FetchMode;
+import com.example.persistence_repository.persistence.entity.relation.FetchMode;
 
 @Entity(tableName = "Book")
 public class Book {
@@ -19,24 +19,23 @@ public class Book {
     private String ISBN;
 
     @Column(type = "INT")
-    private Integer PublishedYear; // YEAR kiểu MySQL có thể map sang int
+    private Integer PublishedYear;
 
-    @ManyToOne(joinColumn = "AuthorID", fetch = FetchMode.EAGER) // thử eager để test
-    private Author author; // quan hệ nhiều-sách-thuộc-về-một-tác-giả
+    @ManyToOne(joinColumn = "AuthorID", fetch = FetchMode.EAGER)
+    private Author author;
 
-    // Lưu khóa ngoại như một cột scalar để Insert/Update (framework hiện tại dùng
-    // field tên cột)
     @Column(type = "INT", nullable = false)
     private Integer AuthorID;
 
-    public Book() {
+    public Book(Integer bookID, String title, String iSBN, Integer publishedYear, Integer authorID) {
+        BookID = bookID;
+        Title = title;
+        ISBN = iSBN;
+        PublishedYear = publishedYear;
+        AuthorID = authorID;
     }
 
-    public Book(String title, String isbn, Integer publishedYear, Integer authorID) {
-        this.Title = title;
-        this.ISBN = isbn;
-        this.PublishedYear = publishedYear;
-        this.AuthorID = authorID;
+    public Book() {
     }
 
     public Integer getBookID() {

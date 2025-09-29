@@ -6,8 +6,8 @@ import com.example.persistence_repository.persistence.annotation.Column;
 import com.example.persistence_repository.persistence.annotation.Entity;
 import com.example.persistence_repository.persistence.annotation.Key;
 import com.example.persistence_repository.persistence.annotation.ManyToOne;
-import com.example.persistence_repository.persistence.entity.FetchMode;
 import com.example.persistence_repository.persistence.entity.LazyReference;
+import com.example.persistence_repository.persistence.entity.relation.FetchMode;
 
 @Entity(tableName = "Loan")
 public class Loan {
