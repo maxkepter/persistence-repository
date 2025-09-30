@@ -3,6 +3,8 @@ package com.example.persistence_repository.persistence.config;
 import java.sql.Connection;
 import java.sql.SQLException;
 
+import com.example.persistence_repository.persistence.cache.EntityCache;
+
 /**
  * Manages database transactions using ThreadLocal to ensure thread safety.
  * <p>
@@ -50,6 +52,8 @@ public class TransactionManager {
     // To keep track of transaction depth for nested transactions
     private static ThreadLocal<Integer> transactionDepthHolder = ThreadLocal.withInitial(() -> 0);
 
+    private static ThreadLocal<EntityCache> cacheHolder = new ThreadLocal<>();
+
     /**
      * Begins a new transaction by setting auto-commit to false on the current
      * connection.
@@ -59,9 +63,10 @@ public class TransactionManager {
     public static void beginTransaction() throws SQLException {
 
         if (transactionDepthHolder.get() < 1 && connectionHolder.get() == null) {
-            Connection connection = DBcontext.createConnection();
+            Connection connection = DBcontext.getConnection();
             connection.setAutoCommit(false);
             connectionHolder.set(connection);
+            cacheHolder.set(EntityCache.defaultCache());
         }
 
         transactionDepthHolder.set(transactionDepthHolder.get() + 1);
@@ -83,7 +88,6 @@ public class TransactionManager {
             throw new SQLException("No transaction to commit");
         } else if (depth == 0) {
             connection.commit();
-            connection.close();
             connectionHolder.remove();
         }
 
@@ -105,8 +109,8 @@ public class TransactionManager {
             throw new SQLException("No transaction to rollback");
         } else if (depth == 0) {
             connection.rollback();
-            connection.close();
             connectionHolder.remove();
+            cacheHolder.remove();
         }
 
     }
@@ -130,5 +134,14 @@ public class TransactionManager {
 
         }
         return connection;
+    }
+
+    public static EntityCache getCache() {
+        EntityCache cache = cacheHolder.get();
+        if (cache == null) {
+            cache = EntityCache.defaultCache();
+            cacheHolder.set(cache);
+        }
+        return cache;
     }
 }

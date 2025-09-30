@@ -1,13 +1,18 @@
 package com.example.persistence_repository;
 
 import java.lang.reflect.Member;
+import java.sql.SQLException;
 import java.util.List;
+import java.util.Map;
 
 import com.example.persistence_repository.dao.AuthorRepository;
 import com.example.persistence_repository.dao.BookRepository;
 import com.example.persistence_repository.dao.MemberRepository;
 import com.example.persistence_repository.entity.Author;
 import com.example.persistence_repository.entity.Book;
+import com.example.persistence_repository.persistence.annotation.Column;
+import com.example.persistence_repository.persistence.entity.ColumnMeta;
+import com.example.persistence_repository.persistence.entity.EntityMeta;
 import com.example.persistence_repository.persistence.query.clause.ClauseBuilder;
 import com.example.persistence_repository.persistence.repository.CrudRepository;
 import com.example.persistence_repository.persistence.repository.SimpleRepository;
@@ -16,7 +21,6 @@ public class Main {
 
     public static void main(String[] args) {
         selectTest();
-        // System.out.println(resolveRepository(Author.class));
     }
 
     public static <R> CrudRepository<R, Object> resolveRepository(Class<R> targetType) {
@@ -31,12 +35,17 @@ public class Main {
         Book book = new Book(count + 1, "Book Title " + (count + 1), "ISBN-000" + (count + 1), 2020 + (count + 1), 1);
         Book book2 = new Book(count + 2, "Book Title " + (count + 2), "ISBN-000" + (count + 2), 2020 + (count + 2), 1);
         Book book3 = new Book(count + 3, "Book Title " + (count + 3), "ISBN-000" + (count + 3), 2020 + (count + 3), 1);
-        bookRepository.save(book);
-        bookRepository.save(book2);
-        bookRepository.save(book3);
+        try {
+            bookRepository.save(book);
+            bookRepository.save(book2);
+            bookRepository.save(book3);
+        } catch (SQLException e) {
+            // TODO Auto-generated catch block
+            e.printStackTrace();
+        }
         System.out.println("Inserted 3 books.");
         bookRepository.findAll().forEach((b) -> {
-            System.out.println(b.getBookID() + " - " + b.getTitle());
+            System.out.println(b.getBookID() + " - " + b.getTitle() + "-" + b.getAuthorID());
         });
 
     }
@@ -48,7 +57,7 @@ public class Main {
             System.out.println("Books:");
             System.out.println("---------------------");
             a.getBooks().forEach((b) -> {
-                System.out.println(b.getBookID() + " - " + b.getTitle());
+                System.out.println(b.getBookID() + " - " + b.getTitle() + " - " + b.getAuthor().getName());
             });
         });
     }

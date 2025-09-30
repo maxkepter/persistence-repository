@@ -12,60 +12,70 @@ import com.example.persistence_repository.persistence.entity.relation.FetchMode;
 @Entity(tableName = "Author")
 public class Author {
     @Key
-    @Column(type = "INT")
-    private Integer AuthorID;
+    @Column(type = "INT", name = "AuthorID")
+    private Integer authorID;
 
-    @Column(length = 100, nullable = false)
-    private String Name;
+    @Column(length = 100, nullable = false, name = "Name")
+    private String name;
 
-    @Column(type = "DATE")
-    private Date BirthDate;
+    @Column(type = "DATE", name = "BirthDate")
+    private Date birthDate;
 
-    @Column(length = 50)
-    private String Nationality;
+    @Column(length = 50, name = "Nationality")
+    private String nationality;
 
-    @OneToMany(mappedBy = "AuthorID", joinColumn = "AuthorID", fetch = FetchMode.LAZY)
+    @OneToMany(mappedBy = "authorID", joinColumn = "authorID", fetch = FetchMode.LAZY)
     private List<Book> books;
 
     public Author() {
     }
 
     public Author(String name, Date birthDate, String nationality) {
-        this.Name = name;
-        this.BirthDate = birthDate;
-        this.Nationality = nationality;
+        this.name = name;
+        this.birthDate = birthDate;
+        this.nationality = nationality;
+    }
+
+    @Override
+    public String toString() {
+        return "Author{" +
+                "authorID=" + authorID +
+                ", name='" + name + '\'' +
+                ", birthDate=" + birthDate +
+                ", nationality='" + nationality + '\'' +
+                '}';
     }
 
     public Integer getAuthorID() {
-        return AuthorID;
+        return authorID;
     }
 
     public void setAuthorID(Integer authorID) {
-        AuthorID = authorID;
+        this.authorID = authorID;
     }
 
     public String getName() {
-        return Name;
+        return name;
     }
 
     public void setName(String name) {
-        Name = name;
+        this.name = name;
     }
 
     public Date getBirthDate() {
-        return BirthDate;
+        return birthDate;
     }
 
     public void setBirthDate(Date birthDate) {
-        BirthDate = birthDate;
+        this.birthDate = birthDate;
     }
 
     public String getNationality() {
-        return Nationality;
+        return nationality;
     }
 
     public void setNationality(String nationality) {
-        Nationality = nationality;
+        this.nationality = nationality;
     }
 
     public List<Book> getBooks() {
@@ -74,15 +84,5 @@ public class Author {
 
     public void setBooks(List<Book> books) {
         this.books = books;
-    }
-
-    @Override
-    public String toString() {
-        return "Author{" +
-                "AuthorID=" + AuthorID +
-                ", Name='" + Name + '\'' +
-                ", BirthDate=" + BirthDate +
-                ", Nationality='" + Nationality + '\'' +
-                '}';
     }
 }

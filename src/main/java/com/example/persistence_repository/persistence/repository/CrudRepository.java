@@ -1,5 +1,7 @@
 package com.example.persistence_repository.persistence.repository;
 
+import java.sql.SQLException;
+
 import com.example.persistence_repository.persistence.query.clause.ClauseBuilder;
 
 /**
@@ -20,15 +22,21 @@ import com.example.persistence_repository.persistence.query.clause.ClauseBuilder
  */
 public interface CrudRepository<E, K> {
 
-    E save(E entity);
+    // Cấm thằng nào yêu cầu làm UpdateWithCondition
+
+    E save(E entity) throws SQLException;
+
+    Iterable<E> saveAll(Iterable<E> entities) throws SQLException;
 
     E findById(K key);
 
-    E update(E entity);
+    E update(E entity) throws SQLException;
 
     boolean isExist(K key);
 
-    void deleteById(K key);
+    void deleteById(K key) throws SQLException;
+
+    void deleteWithCondition(ClauseBuilder clause) throws SQLException;
 
     int count();
 

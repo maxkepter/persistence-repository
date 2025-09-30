@@ -1,6 +1,7 @@
 package com.example.persistence_repository.persistence.query.crud;
 
 import java.util.List;
+import java.util.ArrayList;
 
 import com.example.persistence_repository.persistence.config.RepositoryConfig;
 import com.example.persistence_repository.persistence.entity.EntityMeta;
@@ -28,12 +29,13 @@ import com.example.persistence_repository.persistence.query.AbstractQueryBuilder
  */
 public class InsertBuilder<E> extends AbstractQueryBuilder<E> {
 
-    public InsertBuilder(EntityMeta<E> entityMeta) {
-        super(entityMeta);
-    }
-
     private List<String> columns;
     private List<Object> values;
+
+    public InsertBuilder(EntityMeta<E> entityMeta) {
+        super(entityMeta);
+        values = new ArrayList<>();
+    }
 
     public static <E> InsertBuilder<E> builder(EntityMeta<E> entityMeta) {
         return new InsertBuilder<E>(entityMeta);
@@ -50,11 +52,18 @@ public class InsertBuilder<E> extends AbstractQueryBuilder<E> {
     }
 
     public InsertBuilder<E> values(List<Object> values) {
-        this.values = values;
+        // Copy into mutable list to allow further additions
+        this.values.addAll(values);
         return this;
     }
 
     public InsertBuilder<E> values(Object... values) {
+        if (values == null || values.length == 0) {
+            return this; // nothing to add
+        }
+        if (this.values == null) {
+            this.values = new ArrayList<>();
+        }
         this.values.addAll(List.of(values));
         return this;
     }
@@ -68,15 +77,34 @@ public class InsertBuilder<E> extends AbstractQueryBuilder<E> {
         if (columns == null || columns.isEmpty()) {
             throw new IllegalStateException("At least one column is required for INSERT query");
         }
-        if (values == null || values.isEmpty() || values.size() != columns.size()) {
-            throw new IllegalStateException("Values must be provided for all columns in INSERT query");
+        if (values == null || values.isEmpty()) {
+            throw new IllegalStateException("Values must be provided for INSERT query");
         }
+        int columnCount = columns.size();
+        if (columnCount == 0) {
+            throw new IllegalStateException("Column count must be greater than zero");
+        }
+        if (values.size() % columnCount != 0) {
+            throw new IllegalStateException("Values count (" + values.size() + ") must be a multiple of columns count ("
+                    + columnCount + ") for batch INSERT");
+        }
+        int rowCount = values.size() / columnCount;
+
+        // Build placeholder for a single row e.g. "?, ?, ?"
+        String singleRowPlaceholders = String.join(", ", columns.stream().map(c -> "?").toList());
+
         StringBuilder query = new StringBuilder("INSERT INTO ");
         query.append(tableName).append(" (");
         query.append(String.join(", ", columns));
-        query.append(") VALUES (");
-        query.append(String.join(", ", values.stream().map(v -> "?").toList()));
-        query.append(")");
+        query.append(") VALUES ");
+
+        for (int i = 0; i < rowCount; i++) {
+            if (i > 0) {
+                query.append(", ");
+            }
+            query.append("(").append(singleRowPlaceholders).append(")");
+        }
+
         this.setParameters(values);
         return query.toString();
     }

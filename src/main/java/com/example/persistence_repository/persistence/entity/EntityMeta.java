@@ -57,16 +57,17 @@ public class EntityMeta<E> {
     private String tableName;
     private Map<String, ColumnMeta> fieldToColumnMap;
     private List<Field> fields;
+    private List<Field> mappedFields;
     private Field keyField;
     private List<RelationshipMeta> relationships;
 
     public EntityMeta(Class<E> clazz, String tableName, Map<String, ColumnMeta> fieldToColumnMap, List<Field> fields,
-            Field keyField,
-            List<RelationshipMeta> relationships) {
+            List<Field> mappedFields, Field keyField, List<RelationshipMeta> relationships) {
         this.clazz = clazz;
         this.tableName = tableName;
         this.fieldToColumnMap = fieldToColumnMap;
         this.fields = fields;
+        this.mappedFields = mappedFields;
         this.keyField = keyField;
         this.relationships = relationships;
     }
@@ -100,10 +101,12 @@ public class EntityMeta<E> {
 
         String tableName = clazz.getAnnotation(Entity.class).tableName();
         if (tableName.isEmpty()) {
-            tableName = clazz.getSimpleName().toLowerCase() + "s";
+            tableName = clazz.getSimpleName().toLowerCase();
         }
 
         List<Field> fields = List.of(clazz.getDeclaredFields());
+        List<Field> mappedFields = new ArrayList<>();
+        List<Field> persistentFields = new ArrayList<>();
         Field keyField = null;
 
         Map<String, ColumnMeta> fieldToColumnMap = new HashMap<>();
@@ -111,61 +114,6 @@ public class EntityMeta<E> {
 
         for (Field field : fields) {
             field.setAccessible(true);
-
-            if (field.isAnnotationPresent(ManyToOne.class)) {
-                ManyToOne ann = field.getAnnotation(ManyToOne.class);
-                Class<?> targetType = field.getType();
-                // Unwrap LazyReference<T> if relationship is declared as LazyReference<Book>
-                if (targetType == LazyReference.class) {
-                    Type gtype = field.getGenericType();
-                    if (gtype instanceof ParameterizedType pt) {
-                        Type[] args = pt.getActualTypeArguments();
-                        if (args.length == 1 && args[0] instanceof Class<?> c) {
-                            targetType = c;
-                        }
-                    }
-                }
-                relationships.add(new RelationshipMeta(
-                        RelationshipType.MANY_TO_ONE,
-                        field,
-                        targetType,
-                        ann.joinColumn(),
-                        null,
-                        false,
-                        ann.fetch()));
-            }
-
-            if (field.isAnnotationPresent(OneToMany.class)) {
-                OneToMany ann = field.getAnnotation(OneToMany.class);
-                Class<?> target = Object.class;
-                Type genericType = field.getGenericType();
-                if (genericType instanceof ParameterizedType pt) {
-                    Type[] args = pt.getActualTypeArguments();
-                    if (args.length == 1 && args[0] instanceof Class<?> c) {
-                        target = c;
-                    }
-                }
-                relationships.add(new RelationshipMeta(
-                        RelationshipType.ONE_TO_MANY,
-                        field,
-                        target,
-                        ann.joinColumn(),
-                        ann.mappedBy(),
-                        true,
-                        ann.fetch()));
-            }
-
-            if (field.isAnnotationPresent(OneToOne.class)) {
-                OneToOne ann = field.getAnnotation(OneToOne.class);
-                relationships.add(new RelationshipMeta(
-                        RelationshipType.ONE_TO_ONE,
-                        field,
-                        field.getType(),
-                        ann.joinColumn(),
-                        ann.mappedBy(),
-                        false,
-                        ann.fetch()));
-            }
 
             // Default: use exact field name as column name (preserve case) for consistency
             // with code using field.getName()
@@ -177,6 +125,8 @@ public class EntityMeta<E> {
 
             if (field.isAnnotationPresent(Column.class)) {
                 Column column = field.getAnnotation(Column.class);
+
+                persistentFields.add(field);
 
                 if (!column.name().isEmpty()) {
                     columnName = column.name();
@@ -202,10 +152,71 @@ public class EntityMeta<E> {
 
                 }
 
+            } else {
+                mappedFields.add(field);
+
+                if (field.isAnnotationPresent(ManyToOne.class)) {
+                    ManyToOne ann = field.getAnnotation(ManyToOne.class);
+                    Class<?> targetType = field.getType();
+                    // Unwrap LazyReference<T> if relationship is declared as LazyReference<Book>
+                    if (targetType == LazyReference.class) {
+                        Type gtype = field.getGenericType();
+                        if (gtype instanceof ParameterizedType pt) {
+                            Type[] args = pt.getActualTypeArguments();
+                            if (args.length == 1 && args[0] instanceof Class<?> c) {
+                                targetType = c;
+                            }
+                        }
+                    }
+                    relationships.add(new RelationshipMeta(
+                            RelationshipType.MANY_TO_ONE,
+                            field,
+                            targetType,
+                            ann.joinColumn(),
+                            null,
+                            false,
+                            ann.fetch()));
+                }
+
+                if (field.isAnnotationPresent(OneToMany.class)) {
+
+                    OneToMany ann = field.getAnnotation(OneToMany.class);
+                    Class<?> target = Object.class;
+                    Type genericType = field.getGenericType();
+                    if (genericType instanceof ParameterizedType pt) {
+                        Type[] args = pt.getActualTypeArguments();
+                        if (args.length == 1 && args[0] instanceof Class<?> c) {
+                            target = c;
+                        }
+                    }
+                    relationships.add(new RelationshipMeta(
+                            RelationshipType.ONE_TO_MANY,
+                            field,
+                            target,
+                            ann.joinColumn(),
+                            ann.mappedBy(),
+                            true,
+                            ann.fetch()));
+                }
+
+                if (field.isAnnotationPresent(OneToOne.class)) {
+                    OneToOne ann = field.getAnnotation(OneToOne.class);
+                    relationships.add(new RelationshipMeta(
+                            RelationshipType.ONE_TO_ONE,
+                            field,
+                            field.getType(),
+                            ann.joinColumn(),
+                            ann.mappedBy(),
+                            false,
+                            ann.fetch()));
+                }
+
             }
+
         }
 
-        EntityMeta<E> entityMeta = new EntityMeta<>(clazz, tableName, fieldToColumnMap, fields, keyField,
+        EntityMeta<E> entityMeta = new EntityMeta<>(clazz, tableName, fieldToColumnMap, persistentFields, mappedFields,
+                keyField,
                 relationships);
 
         return entityMeta;
@@ -266,6 +277,18 @@ public class EntityMeta<E> {
      */
     public List<RelationshipMeta> getRelationships() {
         return relationships;
+    }
+
+    public String getColnumName(String fieldName) {
+        ColumnMeta colMeta = fieldToColumnMap.get(fieldName);
+        if (colMeta != null) {
+            return colMeta.getName();
+        }
+        return null;
+    }
+
+    public List<Field> getMappedFields() {
+        return mappedFields;
     }
 
 }

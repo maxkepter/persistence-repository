@@ -73,7 +73,7 @@ public final class LazyReference<T> implements Supplier<T> {
             synchronized (this) {
                 if (!loaded) {
                     value = supplier.get();
-                    supplier = null; // giải phóng
+                    supplier = null; // release reference
                     loaded = true;
                 }
             }
@@ -89,5 +89,22 @@ public final class LazyReference<T> implements Supplier<T> {
      */
     public T peekIfLoaded() { // passive check
         return loaded ? value : null;
+    }
+
+    /**
+     * Sets the value directly, marking it as loaded.
+     * <p>
+     * Primarily intended for use by the persistence framework when populating
+     * entities from query results.
+     * </p>
+     * 
+     * @param value value to set (may be null).
+     */
+    public void setValue(T value) {
+        synchronized (this) {
+            this.value = value;
+            this.loaded = true;
+            this.supplier = null; // release reference
+        }
     }
 }
