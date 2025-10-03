@@ -247,6 +247,8 @@ public class RelationshipMeta {
 
 #### ONE_TO_ONE
 
+Single-valued relationships must be wrapped in `LazyReference<T>` to support uniform lazy/eager semantics and optional deferred loading.
+
 ```java
 @Entity(tableName = "users")
 public class User {
@@ -254,13 +256,21 @@ public class User {
     private Long id;
 
     @OneToOne(joinColumn = "profile_id", fetch = FetchMode.EAGER)
-    private Profile profile;
+    private LazyReference<Profile> profile; // wrapped
+
+    public Profile getProfile() { // accessor triggers load
+        return profile.get();
+    }
+
+    public void setProfile(Profile p) {
+        this.profile.setValue(p);
+    }
 }
 
 // RelationshipMeta:
 // - type = ONE_TO_ONE
 // - joinColumn = "profile_id"
-// - fetchMode = EAGER
+// - fetchMode = EAGER (may still defer until first access)
 // - targetEntity = Profile.class
 ```
 
@@ -285,6 +295,8 @@ public class Author {
 
 #### MANY_TO_ONE
 
+Like `@OneToOne`, a `@ManyToOne` target must be wrapped in `LazyReference<T>`.
+
 ```java
 @Entity(tableName = "books")
 public class Book {
@@ -292,7 +304,15 @@ public class Book {
     private Long id;
 
     @ManyToOne(joinColumn = "author_id", fetch = FetchMode.LAZY)
-    private Author author;
+    private LazyReference<Author> author; // wrapped
+
+    public Author getAuthor() {
+        return author.get();
+    }
+
+    public void setAuthor(Author a) {
+        this.author.setValue(a);
+    }
 }
 
 // RelationshipMeta:
@@ -310,23 +330,27 @@ The framework provides lazy loading proxies to defer database access until neede
 
 ### LazyReference<T>
 
-Used for single-value relationships (`@OneToOne`, `@ManyToOne`):
+Used for single-value relationships (`@OneToOne`, `@ManyToOne`). All such fields in entities MUST be declared as `LazyReference<T>` (not the raw target type). Public getters should return the underlying entity to hide the wrapper.
 
 ```java
-// Internal implementation
-public class LazyReference<T> {
-    private T value;
-    private boolean loaded = false;
+@ManyToOne(joinColumn = "RoleID", fetch = FetchMode.EAGER)
+private LazyReference<Role> role;
 
-    public T get() {
-        if (!loaded) {
-            value = loadFromDatabase();
-            loaded = true;
-        }
-        return value;
-    }
+public Role getRole() { // consumer-facing accessor
+    return role.get();
+}
+
+public void setRole(Role r) {
+    this.role.setValue(r);
 }
 ```
+
+Rationale:
+
+- Consistent API for lazy vs eager fetch modes
+- Allows deferred resolution while keeping domain model simple
+- Prevents accidental premature loading during serialization if getter unused
+- Enables future enhancements (e.g., change tracking) without altering field signatures
 
 ### LazyList<T>
 
