@@ -29,7 +29,7 @@ import java.lang.reflect.Field;
  * Instances are immutable and safe to share.</h3>
  * <h3>Limitations</h3>
  * <ul>
- * <li>No fetch mode / cascade info yet (future extension point).</li>
+ * <li>No cascade info yet (future extension point).</li>
  * <li>Generic wildcards (e.g. {@code List<? extends X>}) fallback to
  * {@code Object.class}.</li>
  * </ul>

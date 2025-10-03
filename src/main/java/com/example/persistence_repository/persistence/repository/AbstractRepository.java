@@ -8,19 +8,15 @@ import java.sql.ResultSetMetaData;
 import java.util.HashMap;
 import java.util.Map;
 
-import java.sql.SQLException;
-import java.util.ArrayList;
-import java.util.List;
-
 import com.example.persistence_repository.persistence.cache.EntityKey;
 import com.example.persistence_repository.persistence.config.DBcontext;
 import com.example.persistence_repository.persistence.config.TransactionManager;
-import com.example.persistence_repository.persistence.entity.EntityMeta;
 import com.example.persistence_repository.persistence.entity.ColumnMeta;
-import com.example.persistence_repository.persistence.entity.LazyReference;
+import com.example.persistence_repository.persistence.entity.EntityMeta;
+import com.example.persistence_repository.persistence.entity.load.LazyList;
+import com.example.persistence_repository.persistence.entity.load.LazyReference;
 import com.example.persistence_repository.persistence.entity.relation.FetchMode;
 import com.example.persistence_repository.persistence.entity.relation.RelationshipMeta;
-import com.example.persistence_repository.persistence.entity.LazyList;
 import com.example.persistence_repository.persistence.query.clause.ClauseBuilder;
 import com.example.persistence_repository.persistence.query.common.Page;
 import com.example.persistence_repository.persistence.query.common.PageRequest;
@@ -28,6 +24,10 @@ import com.example.persistence_repository.persistence.query.crud.DeleteBuilder;
 import com.example.persistence_repository.persistence.query.crud.InsertBuilder;
 import com.example.persistence_repository.persistence.query.crud.SelectBuilder;
 import com.example.persistence_repository.persistence.query.crud.UpdateBuilder;
+
+import java.sql.SQLException;
+import java.util.ArrayList;
+import java.util.List;
 
 /**
  * An abstract base class for implementing CRUD (Create, Read, Update, Delete)
@@ -68,16 +68,20 @@ public abstract class AbstractRepository<E, K> implements CrudRepository<E, K> {
     @Override
     public boolean isExist(K key) {
         Connection connection = DBcontext.getConnection();
-        SelectBuilder<E> builder = SelectBuilder.builder(entityMeta)
-                .columns(List.of("1"))
-                .where(keyField.getName() + " = ?", key)
+        SelectBuilder builder = SelectBuilder.builder(entityMeta.getTableName())
+                .where(entityMeta.getColnumName(keyField.getName()) + " = ?", key)
                 .limit(1);
         boolean exists = false;
-        try (PreparedStatement preparedSt = connection.prepareStatement(builder.build());
-                ResultSet rs = preparedSt.executeQuery()) {
-            if (rs.next()) {
-                exists = true;
+        try (PreparedStatement preparedSt = connection.prepareStatement(builder.build());) {
+            setPreparedStatementValue(preparedSt, builder.getParameters());
+            try (ResultSet rs = preparedSt.executeQuery()) {
+                if (rs.next()) {
+                    exists = true;
+                }
+            } catch (Exception e) {
+                e.printStackTrace();
             }
+
         } catch (Exception e) {
             e.printStackTrace();
         }
@@ -87,7 +91,7 @@ public abstract class AbstractRepository<E, K> implements CrudRepository<E, K> {
     @Override
     public int count() {
         Connection connection = DBcontext.getConnection();
-        SelectBuilder<E> builder = SelectBuilder.builder(entityMeta)
+        SelectBuilder builder = SelectBuilder.builder(entityMeta.getTableName())
                 .columns(List.of("COUNT(*) AS total"));
         int count = 0;
         try (PreparedStatement preparedSt = connection.prepareStatement(builder.build());
@@ -104,28 +108,18 @@ public abstract class AbstractRepository<E, K> implements CrudRepository<E, K> {
     @Override
     public Iterable<E> findAll() {
         List<E> result = null;
-        try {
-            TransactionManager.beginTransaction();
-            Connection connection = TransactionManager.getConnection();
-            SelectBuilder<E> builder = SelectBuilder.builder(entityMeta)
-                    .columns(persistentFields.stream().map((f) -> entityMeta.getColnumName(f.getName())).toList());
 
-            try (PreparedStatement preparedSt = connection.prepareStatement(builder.build());
-                    ResultSet rs = preparedSt.executeQuery()) {
-                result = mapListResultSet(rs, cls);
-            } catch (Exception e) {
-                e.printStackTrace();
-            }
-            TransactionManager.getCache().put(result);
-            TransactionManager.commit();
-        } catch (SQLException e) {
+        Connection connection = TransactionManager.getConnection();
+        SelectBuilder builder = SelectBuilder.builder(entityMeta.getTableName())
+                .columns(persistentFields.stream().map((f) -> entityMeta.getColnumName(f.getName())).toList());
+
+        try (PreparedStatement preparedSt = connection.prepareStatement(builder.build());
+                ResultSet rs = preparedSt.executeQuery()) {
+            result = mapListResultSet(rs, cls);
+        } catch (Exception e) {
             e.printStackTrace();
-            try {
-                TransactionManager.rollback();
-            } catch (SQLException e1) {
-                e1.printStackTrace();
-            }
         }
+        TransactionManager.getCache().put(result);
 
         return result;
     }
@@ -133,35 +127,24 @@ public abstract class AbstractRepository<E, K> implements CrudRepository<E, K> {
     @Override
     public Iterable<E> findWithCondition(ClauseBuilder clause) {
         List<E> result = null;
-        try {
-            TransactionManager.beginTransaction();
-            Connection connection = DBcontext.getConnection();
-            SelectBuilder<E> builder = SelectBuilder.builder(entityMeta)
-                    .columns(persistentFields.stream().map((f) -> entityMeta.getColnumName(f.getName())).toList())
-                    .where(clause.build());
-            builder.setParameters(clause.getParameters());
-            System.out.println(builder.getParameters());
 
-            try (PreparedStatement preparedSt = connection.prepareStatement(builder.build());) {
-                setPreparedStatementValue(preparedSt, builder.getParameters());
-                try (ResultSet rs = preparedSt.executeQuery()) {
-                    result = mapListResultSet(rs, cls);
-                } catch (Exception e) {
-                    e.printStackTrace();
-                }
+        Connection connection = TransactionManager.getConnection();
+        SelectBuilder builder = SelectBuilder.builder(entityMeta.getTableName())
+                .columns(persistentFields.stream().map((f) -> entityMeta.getColnumName(f.getName())).toList())
+                .where(clause.build());
+        builder.setParameters(clause.getParameters());
+
+        try (PreparedStatement preparedSt = connection.prepareStatement(builder.build());) {
+            setPreparedStatementValue(preparedSt, builder.getParameters());
+            try (ResultSet rs = preparedSt.executeQuery()) {
+                result = mapListResultSet(rs, cls);
             } catch (Exception e) {
                 e.printStackTrace();
             }
-            TransactionManager.getCache().put(result);
-            TransactionManager.commit();
-        } catch (SQLException e) {
+        } catch (Exception e) {
             e.printStackTrace();
-            try {
-                TransactionManager.rollback();
-            } catch (SQLException e1) {
-                e1.printStackTrace();
-            }
         }
+        TransactionManager.getCache().put(result);
 
         return result;
 
@@ -170,46 +153,37 @@ public abstract class AbstractRepository<E, K> implements CrudRepository<E, K> {
     public Page<E> findWithCondition(ClauseBuilder clause, PageRequest request) {
         List<E> result = null;
         int total = 0;
-        try {
-            TransactionManager.beginTransaction();
-            Connection connection = TransactionManager.getConnection();
-            SelectBuilder<E> builder = SelectBuilder.builder(entityMeta)
-                    .columns(persistentFields.stream().map((f) -> entityMeta.getColnumName(f.getName())).toList())
-                    .where(clause.build());
-            builder.setParameters(clause.getParameters());
-            String query = builder.build(false);
 
-            // Count total records
-            total = countRecord(query, connection, builder.getParameters());
+        Connection connection = TransactionManager.getConnection();
+        SelectBuilder builder = SelectBuilder.builder(entityMeta.getTableName())
+                .columns(persistentFields.stream().map((f) -> entityMeta.getColnumName(f.getName())).toList())
+                .where(clause.build());
+        builder.setParameters(clause.getParameters());
+        String query = builder.build(false);
 
-            // Calculate offset for pagination
-            int offset = (request.getPageNumber() - 1) * request.getPageSize();
-            // Apply pagination and sorting to the original query
-            builder.limit(request.getPageSize() > total ? total : request.getPageSize()).offset(offset);
-            if (request.getSort() != null && request.getSort().getOrders() != null) {
-                builder.orderBy(request.getSort().getOrders());
-            }
+        // Count total records
+        total = countRecord(query, connection, builder.getParameters());
 
-            try (PreparedStatement ps = connection.prepareStatement(builder.build())) {
-                setPreparedStatementValue(ps, builder.getParameters());
-                try (ResultSet rs = ps.executeQuery()) {
-                    result = mapListResultSet(rs, cls);
-                } catch (Exception e) {
-                    e.printStackTrace();
-                }
+        // Calculate offset for pagination
+        int offset = (request.getPageNumber() - 1) * request.getPageSize();
+        // Apply pagination and sorting to the original query
+        builder.limit(request.getPageSize() > total ? total : request.getPageSize()).offset(offset);
+        if (request.getSort() != null && request.getSort().getOrders() != null) {
+            builder.orderBy(request.getSort().getOrders());
+        }
+
+        try (PreparedStatement ps = connection.prepareStatement(builder.build())) {
+            setPreparedStatementValue(ps, builder.getParameters());
+            try (ResultSet rs = ps.executeQuery()) {
+                result = mapListResultSet(rs, cls);
             } catch (Exception e) {
                 e.printStackTrace();
             }
-            TransactionManager.getCache().put(result);
-            TransactionManager.commit();
         } catch (Exception e) {
             e.printStackTrace();
-            try {
-                TransactionManager.rollback();
-            } catch (Exception ex) {
-                ex.printStackTrace();
-            }
         }
+        TransactionManager.getCache().put(result);
+
         return new Page<>(total, request, result);
     }
 
@@ -232,73 +206,60 @@ public abstract class AbstractRepository<E, K> implements CrudRepository<E, K> {
     public Page<E> findAll(PageRequest request) {
         List<E> result = null;
         int total = 0;
-        try {
-            TransactionManager.beginTransaction();
-            Connection connection = TransactionManager.getConnection();
-            // Build the base select query
-            SelectBuilder<E> builder = SelectBuilder.builder(entityMeta)
-                    .columns(persistentFields.stream().map((f) -> entityMeta.getColnumName(f.getName())).toList());
-            String query = builder.build(false);
 
-            // Count total records
-            total = countRecord(query, connection, null);
+        Connection connection = TransactionManager.getConnection();
+        // Build the base select query
+        SelectBuilder builder = SelectBuilder.builder(entityMeta.getTableName())
+                .columns(persistentFields.stream().map((f) -> entityMeta.getColnumName(f.getName())).toList());
+        String query = builder.build(false);
 
-            int offset = (request.getPageNumber() - 1) * request.getPageSize();
-            // Apply pagination and sorting to the original query
-            builder.limit(request.getPageSize() > total ? total : request.getPageSize()).offset(offset);
-            if (request.getSort() != null && request.getSort().getOrders() != null) {
-                builder.orderBy(request.getSort().getOrders());
-            }
+        // Count total records
+        total = countRecord(query, connection, null);
 
-            try (PreparedStatement ps = connection.prepareStatement(builder.build());
-                    ResultSet rs = ps.executeQuery()) {
-                result = mapListResultSet(rs, cls);
-            } catch (Exception e) {
-                e.printStackTrace();
-            }
-            TransactionManager.getCache().put(result);
-            TransactionManager.commit();
+        int offset = (request.getPageNumber() - 1) * request.getPageSize();
+        // Apply pagination and sorting to the original query
+        builder.limit(request.getPageSize() > total ? total : request.getPageSize()).offset(offset);
+        if (request.getSort() != null && request.getSort().getOrders() != null) {
+            builder.orderBy(request.getSort().getOrders());
+        }
+
+        try (PreparedStatement ps = connection.prepareStatement(builder.build());
+                ResultSet rs = ps.executeQuery()) {
+            result = mapListResultSet(rs, cls);
         } catch (Exception e) {
             e.printStackTrace();
-            try {
-                TransactionManager.rollback();
-            } catch (Exception ex) {
-                ex.printStackTrace();
-            }
         }
+        TransactionManager.getCache().put(result);
+
         return new Page<>(total, request, result);
     }
 
     @Override
-    public void deleteById(K key) throws SQLException {
-        TransactionManager.beginTransaction();
+    public void deleteById(K key) {
+
         Connection connection = TransactionManager.getConnection();
-        DeleteBuilder<E> builder = DeleteBuilder.builder(entityMeta).where(keyField.getName() + " = ?", key);
+        DeleteBuilder builder = DeleteBuilder.builder(entityMeta.getTableName()).where(keyField.getName() + " = ?",
+                key);
         try (PreparedStatement ps = connection.prepareStatement(builder.build())) {
             setPreparedStatementValue(ps, builder.getParameters());
             ps.execute();
             TransactionManager.getCache().remove(EntityKey.of(cls, key));
-            TransactionManager.commit();
         } catch (Exception e) {
             e.printStackTrace();
-            TransactionManager.rollback();
         }
     }
 
     @Override
-    public void deleteWithCondition(ClauseBuilder clause) throws SQLException {
-        TransactionManager.beginTransaction();
+    public void deleteWithCondition(ClauseBuilder clause) {
         Connection connection = TransactionManager.getConnection();
-        DeleteBuilder<E> builder = DeleteBuilder.builder(entityMeta).where(clause.build());
+        DeleteBuilder builder = DeleteBuilder.builder(entityMeta.getTableName()).where(clause.build());
         builder.setParameters(clause.getParameters());
         try (PreparedStatement ps = connection.prepareStatement(builder.build())) {
             setPreparedStatementValue(ps, builder.getParameters());
             ps.execute();
             TransactionManager.getCache().clear(entityMeta.getClass());
-            TransactionManager.commit();
         } catch (Exception e) {
             e.printStackTrace();
-            TransactionManager.rollback();
         }
     }
 
@@ -306,41 +267,33 @@ public abstract class AbstractRepository<E, K> implements CrudRepository<E, K> {
     @Override
     public E findById(K key) {
         E entity = null;
-        try {
-            TransactionManager.beginTransaction();
-            if (TransactionManager.getCache().contains(EntityKey.of(cls, key))) {
-                return (E) TransactionManager.getCache().get(EntityKey.of(cls, key));
-            }
-            Connection connection = TransactionManager.getConnection();
-            SelectBuilder<E> builder = SelectBuilder.builder(entityMeta).where(keyField.getName() + " = ?", key);
-            try (PreparedStatement ps = connection.prepareStatement(builder.build())) {
-                setPreparedStatementValue(ps, builder.getParameters());
-                try (ResultSet rs = ps.executeQuery()) {
-                    if (rs.next()) {
-                        entity = mapResultSet(rs, cls);
-                    }
-                } catch (Exception e) {
-                    e.printStackTrace();
+
+        if (TransactionManager.getCache().contains(EntityKey.of(cls, key))) {
+            return (E) TransactionManager.getCache().get(EntityKey.of(cls, key));
+        }
+
+        Connection connection = TransactionManager.getConnection();
+        SelectBuilder builder = SelectBuilder.builder(entityMeta.getTableName()).where(keyField.getName() + " = ?",
+                key);
+        try (PreparedStatement ps = connection.prepareStatement(builder.build())) {
+            setPreparedStatementValue(ps, builder.getParameters());
+            try (ResultSet rs = ps.executeQuery()) {
+                if (rs.next()) {
+                    entity = mapResultSet(rs, cls);
                 }
             } catch (Exception e) {
                 e.printStackTrace();
             }
-            TransactionManager.getCache().put(EntityKey.of(cls, key), entity);
-            TransactionManager.commit();
         } catch (Exception e) {
             e.printStackTrace();
-            try {
-                TransactionManager.rollback();
-            } catch (Exception ex) {
-                ex.printStackTrace();
-            }
         }
+        TransactionManager.getCache().put(EntityKey.of(cls, key), entity);
+
         return entity;
     }
 
     @Override
-    public E save(E entity) throws SQLException {
-        TransactionManager.beginTransaction();
+    public E save(E entity) {
         Connection connection = TransactionManager.getConnection();
         try {
             if (keyField == null) {
@@ -356,9 +309,12 @@ public abstract class AbstractRepository<E, K> implements CrudRepository<E, K> {
             for (Field field : persistentFields) {
                 field.setAccessible(true);
                 columnNames.add(entityMeta.getColnumName(field.getName()));
-                values.add(field.get(entity));
+
+                // do convert here
+                Object value = entityMeta.getColnumValue(field.get(entity), field);
+                values.add(value);
             }
-            InsertBuilder<E> builder = InsertBuilder.builder(entityMeta)
+            InsertBuilder builder = InsertBuilder.builder(entityMeta.getTableName())
                     .columns(columnNames)
                     .values(values);
             try (PreparedStatement ps = connection.prepareStatement(builder.build())) {
@@ -366,18 +322,15 @@ public abstract class AbstractRepository<E, K> implements CrudRepository<E, K> {
                 ps.executeUpdate();
             }
             TransactionManager.getCache().put(EntityKey.of(cls, keyVal), entity);
-            TransactionManager.commit();
             return entity;
         } catch (Exception e) {
             e.printStackTrace();
-            TransactionManager.rollback();
             return null;
         }
     }
 
     @Override
-    public Iterable<E> saveAll(Iterable<E> entities) throws SQLException {
-        TransactionManager.beginTransaction();
+    public Iterable<E> saveAll(Iterable<E> entities) {
         Connection connection = TransactionManager.getConnection();
         try {
             if (keyField == null) {
@@ -394,14 +347,16 @@ public abstract class AbstractRepository<E, K> implements CrudRepository<E, K> {
                 keyValues.add(keyVal);
             }
 
-            InsertBuilder<E> builder = InsertBuilder.builder(entityMeta)
+            InsertBuilder builder = InsertBuilder.builder(entityMeta.getTableName())
                     .columns(persistentFields.stream().map(Field::getName).toList());
 
             for (E entity : entities) {
                 List<Object> values = new ArrayList<>();
                 for (Field field : persistentFields) {
                     field.setAccessible(true);
-                    values.add(field.get(entity));
+
+                    // do convert here
+                    values.add(entityMeta.getColnumValue(field.get(entity), field));
                 }
                 builder.values(values.toArray());
             }
@@ -411,25 +366,24 @@ public abstract class AbstractRepository<E, K> implements CrudRepository<E, K> {
                 ps.executeUpdate();
             }
             TransactionManager.getCache().put(entities);
-            TransactionManager.commit();
             return entities;
         } catch (Exception e) {
             e.printStackTrace();
-            TransactionManager.rollback();
             return null;
         }
     }
 
     @Override
-    public E update(E entity) throws SQLException {
-        TransactionManager.beginTransaction();
+    public E update(E entity) {
         Connection connection = TransactionManager.getConnection();
         try {
-            UpdateBuilder<E> builder = UpdateBuilder.builder(entityMeta);
+            UpdateBuilder builder = UpdateBuilder.builder(entityMeta.getTableName());
             Object keyValue = null;
             for (Field field : persistentFields) {
                 field.setAccessible(true);
-                Object value = field.get(entity);
+
+                // do convert here
+                Object value = entityMeta.getColnumValue(field.get(entity), field);
                 if (field.getName().equals(keyField.getName())) {
                     keyValue = value;
                     continue;
@@ -449,11 +403,9 @@ public abstract class AbstractRepository<E, K> implements CrudRepository<E, K> {
                 }
             }
             TransactionManager.getCache().put(EntityKey.of(cls, keyValue), entity);
-            TransactionManager.commit();
             return entity;
         } catch (Exception e) {
             e.printStackTrace();
-            TransactionManager.rollback();
             return null;
         }
     }
@@ -492,22 +444,6 @@ public abstract class AbstractRepository<E, K> implements CrudRepository<E, K> {
         return total;
     }
 
-    /**
-     * Maps the current row of the given {@link ResultSet} to an instance of the
-     * specified class.
-     * <p>
-     * This method uses reflection to create a new instance of the specified class
-     * and populates its fields with values from the current row of the
-     * {@link ResultSet}.
-     * It matches column names in the result set with field names in the class.
-     * </p>
-     *
-     * @param rs  the {@link ResultSet} positioned at the row to map
-     * @param cls the class to map the result set row to
-     * @return an instance of the specified class populated with values from the
-     *         result set row
-     * @throws Exception if an error occurs during reflection or SQL operations
-     */
     protected E mapResultSet(ResultSet rs, Class<E> cls) throws Exception {
         ResultSetMetaData meta = rs.getMetaData();
         int colCount = meta.getColumnCount();
@@ -528,9 +464,11 @@ public abstract class AbstractRepository<E, K> implements CrudRepository<E, K> {
             if (idx == null) {
                 continue; // column not in result set
             }
-            Object value = rs.getObject(idx);
+
             try {
                 Field field = cls.getDeclaredField(fieldName);
+                // do convert here
+                Object value = entityMeta.getFieldValue(rs.getObject(idx), field);
                 field.setAccessible(true);
                 field.set(obj, value);
             } catch (NoSuchFieldException ignored) {
@@ -545,6 +483,7 @@ public abstract class AbstractRepository<E, K> implements CrudRepository<E, K> {
         // Relationship wiring (prototype implementation):
         for (RelationshipMeta rel : entityMeta.getRelationships()) {
             Field f = rel.getField();
+            f.setAccessible(true);
             // Only handle single-valued for now; collections later
             try {
                 if (rel.isCollection()) {
@@ -554,9 +493,10 @@ public abstract class AbstractRepository<E, K> implements CrudRepository<E, K> {
                     int keyIdx = labelIndex.get(keyField.getName().toLowerCase());
                     Object keyVal = rs.getObject(keyIdx);
                     if (TransactionManager.getCache().contains(EntityKey.of(cls, keyVal))) {
-                        f.set(obj, TransactionManager.getCache().get(EntityKey.of(cls, keyVal)));
+                        LazyReference wrapper = new LazyReference(
+                                () -> (Object) TransactionManager.getCache().get(EntityKey.of(cls, keyVal)));
+                        f.set(obj, wrapper);
                         continue;
-
                     }
                     @SuppressWarnings("unchecked")
                     LazyList<?> list = new LazyList<Object>(() -> (List) repo
@@ -572,15 +512,23 @@ public abstract class AbstractRepository<E, K> implements CrudRepository<E, K> {
                     // Assume FK column stored on this row as rel.getJoinColumn()
                     Object fkValue = null;
                     if (rel.getJoinColumn() != null && !rel.getJoinColumn().isBlank()) {
-                        // attempt to read column by name (case-insensitive fallback loop)
                         Integer fkIdx = labelIndex.get(rel.getJoinColumn().toLowerCase());
                         if (fkIdx != null) {
                             fkValue = rs.getObject(fkIdx);
                         }
                     }
                     Object related = fkValue == null ? null : repo.findById(fkValue);
-                    f.set(obj, related);
 
+                    // If the declared field type is LazyReference, wrap the loaded entity
+                    if (LazyReference.class.isAssignableFrom(f.getType())) {
+                        @SuppressWarnings({ "rawtypes", "unchecked" })
+                        LazyReference wrapper = new LazyReference(() -> (Object) related);
+                        // Mark as loaded directly to avoid re-query
+                        wrapper.setValue(related);
+                        f.set(obj, wrapper);
+                    } else {
+                        f.set(obj, related);
+                    }
                 } else { // LAZY
                     LazyReference<?> ref = new LazyReference<>(() -> {
                         var repo = resolveRepository(rel.getTargetType());

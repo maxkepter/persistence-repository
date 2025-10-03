@@ -26,16 +26,16 @@ import com.example.persistence_repository.persistence.query.AbstractQueryBuilder
  * @author Nguyen Anh Tu
  * @since 1.0
  */
-public class DeleteBuilder<E> extends AbstractQueryBuilder<E> {
+public class DeleteBuilder<E> extends AbstractQueryBuilder {
 
-    public DeleteBuilder(EntityMeta<E> entityMeta) {
-        super(entityMeta);
+    public DeleteBuilder(String tableName) {
+        super(tableName);
     }
 
     private String whereClause;
 
-    public static <E> DeleteBuilder<E> builder(EntityMeta<E> entityMeta) {
-        return new DeleteBuilder<E>(entityMeta);
+    public static <E> DeleteBuilder<E> builder(String tableName) {
+        return new DeleteBuilder<E>(tableName);
     }
 
     /**
@@ -71,10 +71,10 @@ public class DeleteBuilder<E> extends AbstractQueryBuilder<E> {
      */
     @Override
     public String createQuery() {
-        if (entityMeta.getTableName() == null || entityMeta.getTableName().isEmpty()) {
+        if (tableName == null || tableName.isEmpty()) {
             throw new IllegalStateException("Table name is required for DELETE statement.");
         }
-        StringBuilder query = new StringBuilder("DELETE FROM ").append(entityMeta.getTableName());
+        StringBuilder query = new StringBuilder("DELETE FROM ").append(tableName);
         if (whereClause != null && !whereClause.isEmpty()) {
             query.append(" WHERE ").append(whereClause);
         }
@@ -105,7 +105,7 @@ public class DeleteBuilder<E> extends AbstractQueryBuilder<E> {
     @Override
     public String build() {
         String query = createQuery();
-        if (RepositoryConfig.isPrintSql) {
+        if (RepositoryConfig.PRINT_SQL) {
             System.out.println("Generated Query: " + query);
         }
         return query;

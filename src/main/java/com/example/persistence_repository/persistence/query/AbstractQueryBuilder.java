@@ -18,12 +18,12 @@ import com.example.persistence_repository.persistence.entity.EntityMeta;
  * @author Nguyen Anh Tu
  * @since 1.0
  */
-public abstract class AbstractQueryBuilder<E> {
+public abstract class AbstractQueryBuilder {
     private List<Object> parameters;
-    protected EntityMeta<E> entityMeta;
+    protected String tableName;
 
-    public AbstractQueryBuilder(EntityMeta<E> entityMeta) {
-        this.entityMeta = entityMeta;
+    public AbstractQueryBuilder(String tableName) {
+        this.tableName = tableName;
         this.parameters = new ArrayList<>();
     }
 

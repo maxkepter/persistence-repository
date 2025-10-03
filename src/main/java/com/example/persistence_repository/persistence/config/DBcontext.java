@@ -54,12 +54,6 @@ public class DBcontext {
             e.printStackTrace();
         }
         Connection conn = DriverManager.getConnection(url, user, password);
-        // Khởi tạo schema tùy theo loại DB (tùy chọn, không bắt buộc nếu đã tự tạo sẵn)
-        if (url.startsWith("jdbc:h2:")) {
-            runSchema(conn, "schema-h2.sql");
-        } else if (url.startsWith("jdbc:mysql:")) {
-            runSchema(conn, "schema-mysql.sql");
-        }
         return conn;
     }
 

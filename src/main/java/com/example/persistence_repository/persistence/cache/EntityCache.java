@@ -1,12 +1,7 @@
 package com.example.persistence_repository.persistence.cache;
 
-import java.lang.reflect.Field;
-import java.util.Iterator;
-import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
-
-import com.example.persistence_repository.persistence.annotation.Key;
 
 /**
  * A simple in-memory cache implementation for entities.

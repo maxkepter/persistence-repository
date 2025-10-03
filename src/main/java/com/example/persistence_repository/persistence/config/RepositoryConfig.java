@@ -1,13 +1,24 @@
 package com.example.persistence_repository.persistence.config;
 
+import com.example.persistence_repository.PropertyLoader;
+
+/**
+ * Repository configuration loaded from application.properties
+ * Keys:
+ * - repository.url
+ * - repository.username
+ * - repository.password
+ * - repository.driver-class-name
+ * - repository.show-sql
+ */
 public class RepositoryConfig {
-    public static boolean isPrintSql = true;
 
-    // MySQL cấu hình chính (sử dụng khi chạy thật)
-    // Có thể chỉnh tham số useSSL=false & serverTimezone để tránh warning.
-    public final static String DB_URL = "jdbc:mysql://localhost:3306/mydb?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC";
-    public final static String USER = "root";
-    public final static String PASSWORD = "123456";
-    public final static String DRIVER = "com.mysql.cj.jdbc.Driver";
+    public static final String DB_URL = PropertyLoader.get("repository.url", "");
+    public static final String USER = PropertyLoader.get("repository.username", "");
+    public static final String PASSWORD = PropertyLoader.get("repository.password", "");
+    public static final String DRIVER = PropertyLoader.get("repository.driver-class-name", "");
+    public static final boolean PRINT_SQL = PropertyLoader.getBoolean("repository.show-sql", true);
 
+    private RepositoryConfig() {
+    }
 }

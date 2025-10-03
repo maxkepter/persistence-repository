@@ -28,17 +28,17 @@ import com.example.persistence_repository.persistence.query.AbstractQueryBuilder
  * @author Nguyen Anh Tu
  * @since 1.0
  */
-public class UpdateBuilder<E> extends AbstractQueryBuilder<E> {
+public class UpdateBuilder<E> extends AbstractQueryBuilder {
     private List<String> setClauses;
     private String whereClause;
 
-    public UpdateBuilder(EntityMeta<E> entityMeta) {
-        super(entityMeta);
+    public UpdateBuilder(String tableName) {
+        super(tableName);
         setClauses = new ArrayList<>();
     }
 
-    public static <E> UpdateBuilder<E> builder(EntityMeta<E> entityMeta) {
-        return new UpdateBuilder<E>(entityMeta);
+    public static <E> UpdateBuilder<E> builder(String tableName) {
+        return new UpdateBuilder<E>(tableName);
     }
 
     public UpdateBuilder<E> set(String column, Object value) {
@@ -63,7 +63,6 @@ public class UpdateBuilder<E> extends AbstractQueryBuilder<E> {
 
     @Override
     public String createQuery() {
-        String tableName = entityMeta.getTableName();
         if (tableName == null || tableName.isEmpty()) {
             throw new IllegalStateException("Table name is required for UPDATE statement.");
         }
@@ -94,7 +93,7 @@ public class UpdateBuilder<E> extends AbstractQueryBuilder<E> {
     @Override
     public String build() {
         String query = createQuery();
-        if (RepositoryConfig.isPrintSql) {
+        if (RepositoryConfig.PRINT_SQL) {
             System.out.println("Generated Query: " + query);
         }
         return query;

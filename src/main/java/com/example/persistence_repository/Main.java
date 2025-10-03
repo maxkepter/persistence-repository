@@ -1,65 +1,115 @@
 package com.example.persistence_repository;
 
-import java.lang.reflect.Member;
 import java.sql.SQLException;
-import java.util.List;
-import java.util.Map;
 
-import com.example.persistence_repository.dao.AuthorRepository;
-import com.example.persistence_repository.dao.BookRepository;
-import com.example.persistence_repository.dao.MemberRepository;
-import com.example.persistence_repository.entity.Author;
-import com.example.persistence_repository.entity.Book;
-import com.example.persistence_repository.persistence.annotation.Column;
-import com.example.persistence_repository.persistence.entity.ColumnMeta;
-import com.example.persistence_repository.persistence.entity.EntityMeta;
-import com.example.persistence_repository.persistence.query.clause.ClauseBuilder;
+import com.example.persistence_repository.common.model.Account;
+import com.example.persistence_repository.common.model.AccountRequest;
+import com.example.persistence_repository.common.model.Category;
+import com.example.persistence_repository.common.model.Contract;
+import com.example.persistence_repository.common.model.Customer;
+import com.example.persistence_repository.common.model.Feature;
+import com.example.persistence_repository.common.model.Feedback;
+import com.example.persistence_repository.common.model.InventoryItem;
+import com.example.persistence_repository.common.model.Product;
+import com.example.persistence_repository.common.model.ProductContract;
+import com.example.persistence_repository.common.model.ProductExported;
+import com.example.persistence_repository.common.model.ProductRequest;
+import com.example.persistence_repository.common.model.ProductSpecification;
+import com.example.persistence_repository.common.model.ProductTransaction;
+import com.example.persistence_repository.common.model.ProductWarehouse;
+import com.example.persistence_repository.common.model.Request;
+import com.example.persistence_repository.common.model.RequestLog;
+import com.example.persistence_repository.common.model.Role;
+import com.example.persistence_repository.common.model.RoleFeature;
+import com.example.persistence_repository.common.model.Specification;
+import com.example.persistence_repository.common.model.SpecificationType;
+import com.example.persistence_repository.common.model.Staff;
+import com.example.persistence_repository.common.model.Type;
+import com.example.persistence_repository.common.model.Warehouse;
+import com.example.persistence_repository.common.model.WarehouseLog;
+import com.example.persistence_repository.persistence.config.DBcontext;
+import com.example.persistence_repository.persistence.config.TransactionManager;
+import com.example.persistence_repository.persistence.entity.EntityRegistry;
+import com.example.persistence_repository.persistence.entity.SchemaGenerator;
+import com.example.persistence_repository.persistence.query.common.Page;
 import com.example.persistence_repository.persistence.repository.CrudRepository;
 import com.example.persistence_repository.persistence.repository.SimpleRepository;
 
 public class Main {
-
     public static void main(String[] args) {
-        selectTest();
+        generateAll();
     }
 
-    public static <R> CrudRepository<R, Object> resolveRepository(Class<R> targetType) {
-
-        return (CrudRepository<R, Object>) new SimpleRepository<R, Object>(targetType);
-    }
-
-    public static void insertTest() {
-        BookRepository bookRepository = new BookRepository();
-        int count = bookRepository.count();
-        System.out.println(count + " books in database.");
-        Book book = new Book(count + 1, "Book Title " + (count + 1), "ISBN-000" + (count + 1), 2020 + (count + 1), 1);
-        Book book2 = new Book(count + 2, "Book Title " + (count + 2), "ISBN-000" + (count + 2), 2020 + (count + 2), 1);
-        Book book3 = new Book(count + 3, "Book Title " + (count + 3), "ISBN-000" + (count + 3), 2020 + (count + 3), 1);
+    public static void generateAll() {
         try {
-            bookRepository.save(book);
-            bookRepository.save(book2);
-            bookRepository.save(book3);
+            TransactionManager.beginTransaction();
+            // Ensure schema exists then load sample data
+            System.out.println("Generating all database schemas...");
+            testSchemaGeneration();
+            System.out.println("Loading sample data into the database...");
+            SampleDataLoader.loadAll();
+            TransactionManager.commit();
+            System.out.println("Sample data loaded successfully.");
         } catch (SQLException e) {
-            // TODO Auto-generated catch block
+            try {
+                TransactionManager.rollback();
+            } catch (SQLException e1) {
+                // TODO Auto-generated catch block
+                e1.printStackTrace();
+            }
+            System.err.println("Failed to load sample data: " + e.getMessage());
             e.printStackTrace();
         }
-        System.out.println("Inserted 3 books.");
-        bookRepository.findAll().forEach((b) -> {
-            System.out.println(b.getBookID() + " - " + b.getTitle() + "-" + b.getAuthorID());
-        });
 
     }
 
-    public static void selectTest() {
-        AuthorRepository authorRepository = new AuthorRepository();
-        authorRepository.findAll().forEach((a) -> {
-            System.out.println(a.getAuthorID() + " - " + a.getName());
-            System.out.println("Books:");
-            System.out.println("---------------------");
-            a.getBooks().forEach((b) -> {
-                System.out.println(b.getBookID() + " - " + b.getTitle() + " - " + b.getAuthor().getName());
-            });
-        });
+    public static void testSchemaGeneration() {
+        try {
+            // Initialize DB connection (side-effect: ensure driver loaded)
+            DBcontext.getConnection();
+
+            // 1. Register all entity classes (add new ones here when created)
+            Class<?>[] entities = new Class<?>[] {
+                    Account.class,
+                    Role.class,
+                    Feature.class,
+                    RoleFeature.class,
+                    AccountRequest.class,
+                    Category.class,
+                    Type.class,
+                    SpecificationType.class,
+                    Specification.class,
+                    Product.class,
+                    ProductSpecification.class,
+                    ProductWarehouse.class,
+                    Warehouse.class,
+                    WarehouseLog.class,
+                    InventoryItem.class,
+                    ProductTransaction.class,
+                    ProductRequest.class,
+                    ProductExported.class,
+                    Staff.class,
+                    Customer.class,
+                    Contract.class,
+                    Request.class,
+                    RequestLog.class,
+                    Feedback.class,
+                    ProductContract.class
+            };
+            for (Class<?> c : entities) {
+                @SuppressWarnings("unchecked")
+                Class<Object> cls = (Class<Object>) c;
+                EntityRegistry.register(cls);
+            }
+
+            // 2. Generate schema (DDL) for all registered entities
+            SchemaGenerator.withDefault().generateAll();
+
+            System.out.println("Schema generation completed successfully.");
+        } catch (Exception e) {
+            System.err.println("Schema generation failed: " + e.getMessage());
+            e.printStackTrace();
+        }
     }
 
 }

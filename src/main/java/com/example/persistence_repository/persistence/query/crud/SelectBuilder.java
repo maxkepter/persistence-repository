@@ -33,7 +33,7 @@ import com.example.persistence_repository.persistence.query.common.Order;
  * @author Nguyen Anh Tu
  * @since 1.0
  */
-public class SelectBuilder<E> extends AbstractQueryBuilder<E> {
+public class SelectBuilder<E> extends AbstractQueryBuilder {
 
     private List<String> columns;
     private boolean isDistinct;
@@ -44,16 +44,16 @@ public class SelectBuilder<E> extends AbstractQueryBuilder<E> {
     private Integer offset;
     private final List<String> joins = new ArrayList<>();
 
-    public SelectBuilder(EntityMeta<E> entityMeta) {
-        super(entityMeta);
+    public SelectBuilder(String tableName) {
+        super(tableName);
         this.orderByColumns = new ArrayList<>();
     }
 
-    public static <E> SelectBuilder<E> builder(EntityMeta<E> entityMeta) {
-        if (entityMeta == null) {
+    public static <E> SelectBuilder<E> builder(String tableName) {
+        if (tableName == null) {
             throw new IllegalArgumentException("EntityMeta cannot be null");
         }
-        return new SelectBuilder<E>(entityMeta);
+        return new SelectBuilder<E>(tableName);
     }
 
     public SelectBuilder<E> alias(String alias) {
@@ -126,7 +126,6 @@ public class SelectBuilder<E> extends AbstractQueryBuilder<E> {
 
     @Override
     public String createQuery() {
-        String tableName = entityMeta.getTableName();
         String tempAlias = alias;
         boolean useAlias = true;
         if (alias == null || alias.isEmpty() || alias.equalsIgnoreCase(tableName)) {
@@ -211,7 +210,7 @@ public class SelectBuilder<E> extends AbstractQueryBuilder<E> {
     @Override
     public String build() {
         String query = createQuery();
-        if (RepositoryConfig.isPrintSql) {
+        if (RepositoryConfig.PRINT_SQL) {
             System.out.println("Generated Query: " + query);
         }
         return query;

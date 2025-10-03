@@ -1,10 +1,9 @@
 package com.example.persistence_repository.persistence.query.crud;
 
-import java.util.List;
 import java.util.ArrayList;
+import java.util.List;
 
 import com.example.persistence_repository.persistence.config.RepositoryConfig;
-import com.example.persistence_repository.persistence.entity.EntityMeta;
 import com.example.persistence_repository.persistence.query.AbstractQueryBuilder;
 
 /**
@@ -27,18 +26,16 @@ import com.example.persistence_repository.persistence.query.AbstractQueryBuilder
  * @since 1.0
  * 
  */
-public class InsertBuilder<E> extends AbstractQueryBuilder<E> {
+public class InsertBuilder<E> extends AbstractQueryBuilder {
 
     private List<String> columns;
-    private List<Object> values;
 
-    public InsertBuilder(EntityMeta<E> entityMeta) {
-        super(entityMeta);
-        values = new ArrayList<>();
+    public InsertBuilder(String tableName) {
+        super(tableName);
     }
 
-    public static <E> InsertBuilder<E> builder(EntityMeta<E> entityMeta) {
-        return new InsertBuilder<E>(entityMeta);
+    public static <E> InsertBuilder<E> builder(String tableName) {
+        return new InsertBuilder<E>(tableName);
     }
 
     public InsertBuilder<E> columns(List<String> columns) {
@@ -52,8 +49,7 @@ public class InsertBuilder<E> extends AbstractQueryBuilder<E> {
     }
 
     public InsertBuilder<E> values(List<Object> values) {
-        // Copy into mutable list to allow further additions
-        this.values.addAll(values);
+        this.getParameters().addAll(values);
         return this;
     }
 
@@ -61,34 +57,31 @@ public class InsertBuilder<E> extends AbstractQueryBuilder<E> {
         if (values == null || values.length == 0) {
             return this; // nothing to add
         }
-        if (this.values == null) {
-            this.values = new ArrayList<>();
-        }
-        this.values.addAll(List.of(values));
+        this.getParameters().addAll(List.of(values));
         return this;
     }
 
     @Override
     public String createQuery() {
-        String tableName = entityMeta.getTableName();
         if (tableName == null || tableName.isEmpty()) {
             throw new IllegalStateException("Table name is required for INSERT query");
         }
         if (columns == null || columns.isEmpty()) {
             throw new IllegalStateException("At least one column is required for INSERT query");
         }
-        if (values == null || values.isEmpty()) {
+        if (this.getParameters() == null || this.getParameters().isEmpty()) {
             throw new IllegalStateException("Values must be provided for INSERT query");
         }
         int columnCount = columns.size();
         if (columnCount == 0) {
             throw new IllegalStateException("Column count must be greater than zero");
         }
-        if (values.size() % columnCount != 0) {
-            throw new IllegalStateException("Values count (" + values.size() + ") must be a multiple of columns count ("
-                    + columnCount + ") for batch INSERT");
+        if (this.getParameters().size() % columnCount != 0) {
+            throw new IllegalStateException(
+                    "Values count (" + this.getParameters().size() + ") must be a multiple of columns count ("
+                            + columnCount + ") for batch INSERT");
         }
-        int rowCount = values.size() / columnCount;
+        int rowCount = this.getParameters().size() / columnCount;
 
         // Build placeholder for a single row e.g. "?, ?, ?"
         String singleRowPlaceholders = String.join(", ", columns.stream().map(c -> "?").toList());
@@ -104,8 +97,6 @@ public class InsertBuilder<E> extends AbstractQueryBuilder<E> {
             }
             query.append("(").append(singleRowPlaceholders).append(")");
         }
-
-        this.setParameters(values);
         return query.toString();
     }
 
@@ -121,7 +112,7 @@ public class InsertBuilder<E> extends AbstractQueryBuilder<E> {
     @Override
     public String build() {
         String query = createQuery();
-        if (RepositoryConfig.isPrintSql) {
+        if (RepositoryConfig.PRINT_SQL) {
             System.out.println("Generated Query: " + query);
         }
         return query;
