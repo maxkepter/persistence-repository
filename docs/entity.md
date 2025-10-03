@@ -57,7 +57,7 @@ Map<String, ColumnMeta> columns = meta.getFieldToColumnMap();
 
 ### Common Methods
 
-```java
+````java
 // Get table name
 String getTableName()
 
@@ -68,14 +68,71 @@ Field getKeyField()
 String getColnumName(String fieldName)
 
 // Get all persistent fields (excluding relationships)
-List<Field> getFields()
+---
+### Foreign Key ID + LazyReference Pattern
+
+For every single-valued relationship (`@ManyToOne`, `@OneToOne`) the framework recommends (and internal tooling assumes) a dual-field pattern:
+
+1. A primitive/boxed foreign key ID column field (persisted directly)
+2. A `LazyReference<T>` wrapping the related entity (not directly persisted as an object)
+
+#### Example
+```java
+@Entity(tableName = "Account")
+public class Account {
+    @Key
+    @Column(name = "Username", length = 100)
+    private String username;
+
+    @Column(name = "RoleID", type = "BIGINT")
+    private Long roleId;                // Foreign key column
+
+    @ManyToOne(joinColumn = "RoleID", fetch = FetchMode.EAGER)
+    private LazyReference<Role> role;   // Wrapped target
+
+    public Role getRole() {             // Accessor resolves lazily / eagerly
+        return role.get();
+    }
+
+    public void setRole(Role r) {       // Sets cached reference only
+        this.role.setValue(r);
+        this.roleId = (r == null ? null : r.getId()); // keep FK consistent (manual)
+    }
+
+    public Long getRoleId() {           // Direct FK access (no load)
+        return roleId;
+    }
+}
+````
+
+#### Why Keep the Raw FK Field?
+
+| Reason                  | Benefit                                              |
+| ----------------------- | ---------------------------------------------------- |
+| Avoid unnecessary loads | Accessing the ID never triggers SQL                  |
+| Simpler query criteria  | Use `roleId` in clauses without dereferencing entity |
+| Easier migrations       | FK column explicit in code                           |
+| Serialization control   | Serialize IDs without forcing relation load          |
+
+#### Best Practices
+
+| Practice                     | Guidance                                                                |
+| ---------------------------- | ----------------------------------------------------------------------- |
+| Name consistency             | Use `<relationName>Id` (camelCase) for clarity (e.g. `roleId`)          |
+| Keep synchronized            | In setters, update the FK when setting the reference (optional pattern) |
+| Avoid exposing LazyReference | Only expose `getRole()` returning `Role`                                |
+| Use FK in queries            | Prefer `clause.equal("RoleID", account.getRoleId())` over loading role  |
+
+> Note: The framework does not automatically sync the FK when setting the wrapped entity—include the manual assignment if consistency is required.
+> List<Field> getFields()
 
 // Get column metadata
 Map<String, ColumnMeta> getFieldToColumnMap()
 
 // Get relationship metadata
 Map<String, RelationshipMeta> getRelationships()
-```
+
+````
 
 ### Example Entity with Metadata
 
@@ -111,7 +168,7 @@ public class Product {
 // - relationships:
 //   * category → ManyToOne relationship
 //   * reviews → OneToMany relationship
-```
+````
 
 ---
 

@@ -172,6 +172,55 @@ If you need to check loaded state without triggering a query, extend the entity 
 
 ---
 
+## 12. Dual-Field (FK ID + LazyReference) Requirement
+
+All `@ManyToOne` and `@OneToOne` relationships MUST declare both:
+
+1. A concrete foreign key column field (e.g. `private Long roleId;`)
+2. A `LazyReference<T>` field for the related entity (e.g. `private LazyReference<Role> role;`)
+
+### Why This Is Mandatory
+
+| Concern             | Without FK Field                        | With FK Field                                      |
+| ------------------- | --------------------------------------- | -------------------------------------------------- |
+| Filtering / queries | Must load relation to get ID            | Use ID directly (`clause.equal("RoleID", roleId)`) |
+| Serialization       | Risk of triggering load unintentionally | Serialize ID only                                  |
+| Debugging           | Hard to see linkage                     | Explicit FK visible                                |
+| Batch operations    | Need entity materialization             | Operate on IDs only                                |
+
+### Required Pattern
+
+```java
+@Column(name = "RoleID", type = "BIGINT")
+private Long roleId; // persisted FK
+
+@ManyToOne(joinColumn = "RoleID", fetch = FetchMode.LAZY)
+private LazyReference<Role> role; // wrapped relation
+
+public Role getRole() { return role.get(); }
+public Long getRoleId() { return roleId; }
+public void setRole(Role r) {
+    this.role.setValue(r);
+    this.roleId = (r == null ? null : r.getId()); // keep in sync manually
+}
+```
+
+### Pitfalls If Omitted
+
+- Hidden N+1 queries: every access to get the FK requires loading the entity.
+- Harder migration scripts: FK column name not represented in code.
+- Inefficient bulk deletes/updates (need sub-selects instead of simple `WHERE role_id IN (...)`).
+- Serialization frameworks may force-load the relation unexpectedly.
+
+### Enforcement Suggestions
+
+- Add a static build-time check (annotation processor or reflection scan) to assert every `@ManyToOne/@OneToOne` has a matching `<name>Id` field.
+- Add unit tests that reflectively verify the convention.
+
+> WARNING: Future versions may throw an initialization error if the dual-field pattern is not followed.
+
+---
+
 ## Recommendation
 
 Review this file after upgrading the framework—capabilities may evolve and remove some limitations. Propose enhancements by opening an issue referencing section numbers above.

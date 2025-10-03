@@ -288,14 +288,30 @@ public class Book {
     @Key
     private Long id;
 
-    @ManyToOne(joinColumn = "author_id")
-    private Author author;
+    // Foreign key column
+    @Column(name = "author_id", type = "BIGINT")
+    private Long authorId;
+
+    // Wrapped relation (must use LazyReference for single-valued association)
+    @ManyToOne(joinColumn = "author_id", fetch = FetchMode.LAZY)
+    private LazyReference<Author> author;
+
+    public Author getAuthor() { return author.get(); }
+    public Long getAuthorId() { return authorId; }
+    public void setAuthor(Author a) {
+        this.author.setValue(a);
+        this.authorId = (a == null ? null : a.getId());
+    }
 }
 
 // Usage
 Author author = authorRepo.findById(1L);
 List<Book> books = author.getBooks();  // Lazy loaded
+Long fk = books.get(0).getAuthorId();  // Does NOT trigger load
+Author a = books.get(0).getAuthor();   // Triggers load if not already
 ```
+
+> Note: Single-valued relations require both the raw foreign key field (e.g. `authorId`) and a `LazyReference<T>` for the related entity to enable ID-only access without triggering loads.
 
 ### Example 5: Type Converters
 
