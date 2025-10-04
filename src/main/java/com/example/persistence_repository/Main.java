@@ -27,6 +27,8 @@ import com.example.persistence_repository.common.model.Staff;
 import com.example.persistence_repository.common.model.Type;
 import com.example.persistence_repository.common.model.Warehouse;
 import com.example.persistence_repository.common.model.WarehouseLog;
+import com.example.persistence_repository.common.model.enums.AccountStatus;
+import com.example.persistence_repository.common.repository.AccountRepository;
 import com.example.persistence_repository.persistence.config.DBcontext;
 import com.example.persistence_repository.persistence.config.TransactionManager;
 import com.example.persistence_repository.persistence.entity.EntityRegistry;
@@ -37,7 +39,27 @@ import com.example.persistence_repository.persistence.repository.SimpleRepositor
 
 public class Main {
     public static void main(String[] args) {
-        generateAll();
+        AccountRepository accountRepository = new AccountRepository();
+        try {
+            TransactionManager.beginTransaction();
+            Account account = new Account();
+            Role role = new Role();
+            role.setRoleID(1L);
+            role.setRoleName("Administrator");
+            account.setRole(role);
+            System.out.println(account.getRole().getRoleName());
+            TransactionManager.commit();
+        } catch (SQLException e) {
+            // TODO Auto-generated catch block
+            e.printStackTrace();
+            try {
+                TransactionManager.rollback();
+            } catch (SQLException e1) {
+                // TODO Auto-generated catch block
+                e1.printStackTrace();
+            }
+        }
+
     }
 
     public static void generateAll() {

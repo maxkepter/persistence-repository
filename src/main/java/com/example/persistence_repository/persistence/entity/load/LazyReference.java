@@ -39,6 +39,12 @@ public final class LazyReference<T> implements Supplier<T> {
         this.supplier = Objects.requireNonNull(supplier, "supplier must not be null");
     }
 
+    public LazyReference(T value) {
+        this.value = value;
+        this.loaded = true;
+        this.supplier = null;
+    }
+
     /**
      * Indicates whether the underlying supplier has been executed.
      * 

@@ -224,3 +224,51 @@ public void setRole(Role r) {
 ## Recommendation
 
 Review this file after upgrading the framework—capabilities may evolve and remove some limitations. Propose enhancements by opening an issue referencing section numbers above.
+
+---
+
+## 13. Getter/Setter đúng cách cho LazyReference
+
+Khi làm việc với `LazyReference<T>` trong entity, luôn tuân theo các quy tắc sau để tránh NullPointerException và giữ dữ liệu đồng bộ:
+
+- Không expose `LazyReference<T>` ra ngoài API công khai. Chỉ expose entity thông qua getter: `T getX()`.
+- Getter phải an toàn null: nếu wrapper chưa được khởi tạo (entity tạo thủ công, không qua mapper), trả về null thay vì gọi trực tiếp `lazy.get()`.
+- Setter không được thay thế thể hiện `LazyReference` bằng thể hiện mới (trừ khi bạn chủ đích thiết kế lại). Hãy dùng `lazy.setValue(value)` để gán giá trị.
+- Nếu entity có cả trường FK (ví dụ `roleID`) và `LazyReference<Role> role`, luôn đồng bộ FK trong setter: khi set `role`, cập nhật `roleID` tương ứng; khi set `roleID` trực tiếp, có thể cân nhắc làm rỗng (invalidate) `LazyReference` nếu cần.
+- Khi wrapper có thể null (entity tạo bằng constructor), hãy khởi tạo trước khi `setValue`: `if (this.role == null) this.role = new LazyReference<>(() -> value); this.role.setValue(value);`.
+
+### Ví dụ đúng (Account)
+
+```java
+@ManyToOne(joinColumn = "RoleID", fetch = FetchMode.EAGER)
+private LazyReference<Role> role;
+
+@Column(name = "RoleID", type = "BIGINT")
+private Long roleID;
+
+public Role getRole() {
+    return role == null ? null : role.get();
+}
+
+public void setRole(Role r) {
+    if (this.role == null) {
+        this.role = new LazyReference<>(() -> r);
+    }
+    this.role.setValue(r);
+    this.roleID = (r == null ? null : r.getRoleID());
+}
+```
+
+### Ví dụ sai và cách sửa
+
+| Sai                                                                      | Vấn đề                                             | Sửa                                                                         |
+| ------------------------------------------------------------------------ | -------------------------------------------------- | --------------------------------------------------------------------------- |
+| `this.role.setValue(r);` khi `this.role` có thể null                     | NPE khi entity chưa được mapper khởi tạo wrapper   | Kiểm tra null và khởi tạo `LazyReference` trước khi `setValue`              |
+| `this.role = new LazyReference<>(() -> repo.findById(id));` trong setter | Thay thế wrapper phá hỏng cache/trạng thái đã load | Chỉ `setValue` trên wrapper hiện tại, hoặc thiết kế invalidate/reload riêng |
+| Không cập nhật `roleID` khi `setRole(r)`                                 | Mất đồng bộ FK và entity liên quan                 | Đồng bộ: `this.roleID = (r == null ? null : r.getRoleID());`                |
+| Truy cập trực tiếp `role.get()` từ ngoài entity                          | Rò rỉ chi tiết lazy và khó kiểm soát               | Chỉ expose `getRole()`                                                      |
+
+### Gợi ý bổ sung
+
+- Cân nhắc thêm helper chung trong base entity để khởi tạo an toàn: `protected static <T> LazyReference<T> ensure(LazyReference<T> ref, T v) { if (ref == null) ref = new LazyReference<>(() -> v); ref.setValue(v); return ref; }`.
+- Nếu cần biết trạng thái đã load mà không trigger query, thêm method dùng `peekIfLoaded()` trong entity.
